@@ -107,7 +107,16 @@ td.target{font-family:var(--f-mono);white-space:nowrap;font-weight:600}
 .stage.full{position:fixed;inset:0;aspect-ratio:auto;border-radius:0;z-index:100;height:100%}
 .hud{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:10px 12px 0;pointer-events:none;color:#e6ecef;font:500 .8rem/1.2 var(--f-mono)}
 .stage.full .hud{padding-top:max(10px,env(safe-area-inset-top,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
-.hud-count{background:rgba(0,0,0,.45);padding:6px 9px;border-radius:7px}
+.hud-count{background:rgba(0,0,0,.5);padding:7px 10px;border-radius:8px;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.88rem}
+.hud-count .okc{color:#7ee2ab;font-weight:600}
+.hud-count .badc{color:#ffb766;font-weight:600}
+.hud-count .sidep{color:#b9c6cd}
+.grade{display:flex;align-items:baseline;gap:6px}
+.grade b{font:800 clamp(4.2rem,15vw,6.4rem)/.85 var(--f-display);font-stretch:72%}
+.grade span{font:600 1.2rem/1 var(--f-mono);color:var(--muted)}
+.seq .fail{opacity:.35}
+.chart.solo{max-width:440px}
+tfoot td{border-top:2px solid var(--rule);border-bottom:0}
 .hud-cue{font:800 1.5rem/1 var(--f-display);font-stretch:80%;letter-spacing:.02em;padding:4px 10px;border-radius:8px;opacity:0;transition:opacity .18s}
 .hud-cue.on{opacity:1}
 .hud-cue.good{background:#1d7a4c;color:#fff}
@@ -231,10 +240,10 @@ footer ul{margin:0;padding-left:18px;display:grid;gap:4px}
       <li><b>Mount the phone.</b><span>Landscape, across your partner's eyes, screen facing out. A running armband around the head or a Velcro strap holds it. Turn off rotation lock. Skip partners with neck problems.</span></li>
       <li><b>Position yourself.</b><span>Partner seated, you standing close in front with elbows bent. Hands on the sides of the head, clear of the jaw. Tilt the head down about 30° so the horizontal canals sit level.</span></li>
       <li><b>Calibrate.</b><span>Tap Calibrate and mount the phone during the countdown. Hold the head still, then turn it slowly to the patient's right (your left) and back.</span></li>
-      <li><b>Thrust.</b><span>Small (10–20°), fast (150–300°/s), abrupt, then stop dead. Mix sides and pauses. At least six each way.</span></li>
+      <li><b>Thrust.</b><span>Small (10–20°), fast (150–300°/s), abrupt, then stop dead. Mix sides and pauses. The counter shows adequate and failed attempts; you need five adequate each way.</span></li>
       <li><b>Watch the eyes.</b><span>A catch-up saccade back to your nose at the end of a thrust means that side is weak. Look for nystagmus while the patient looks at you.</span></li>
       <li><b>Test gaze and skew.</b><span>Press and hold near the left or right screen edge to make the patient look there. For alternate cover, lay two fingers over one eye, then move them to the other.</span></li>
-      <li><b>Commit, then check.</b><span>Tap Done, record your findings, then see the head and eye velocity traces.</span></li>
+      <li><b>Get graded, commit, then check.</b><span>Tap Done to see your exam grade out of 100, record your findings, then see the head and eye velocity traces.</span></li>
     </ol>
   </section>
 
@@ -548,8 +557,8 @@ function drawFace(cv,P,o){
   g.addColorStop(0,'rgba(90,50,30,0)');g.addColorStop(0.32,'rgba(90,50,30,.2)');g.addColorStop(0.5,'rgba(255,226,192,.2)');g.addColorStop(0.68,'rgba(90,50,30,.2)');g.addColorStop(1,'rgba(90,50,30,0)');
   ctx.fillStyle=g;
   const top=cy-eh*1.3,fade=eh*1.1;
-  for(let i=0;i<10;i++){ctx.globalAlpha=(i+1)/10;ctx.fillRect(nx-ew*0.35,top+fade*i/10,ew*0.7,fade/10+0.5);}
-  ctx.globalAlpha=1;ctx.fillRect(nx-ew*0.35,top+fade,ew*0.7,H);
+  for(let i=0;i<24;i++){const y0=Math.round(top+fade*i/24),y1=Math.round(top+fade*(i+1)/24);ctx.globalAlpha=(i+1)/24;ctx.fillRect(nx-ew*0.35,y0,ew*0.7,y1-y0);}
+  ctx.globalAlpha=1;ctx.fillRect(nx-ew*0.35,Math.round(top+fade),ew*0.7,H);
   const xs={R:W/2+hs-sep/2*cosH,L:W/2+hs+sep/2*cosH};
   const lidC=P.lid(o.now);
   for(const side of ['R','L']){
@@ -637,6 +646,9 @@ function heroStop(){hero.on=false;cancelAnimationFrame(hero.raf);}
 
 /* ================= home setup ================= */
 let sensorState='checking';
+const isBrave=!!(navigator.brave&&navigator.brave.isBrave);
+const touchPhone=matchMedia('(pointer: coarse)').matches;
+const BRAVE_FIX='Brave blocks the motion sensor. Tap the lion icon in the address bar, turn Shields off for this site and reload, or open the link in Chrome.';
 function buildCaseSelect(){
   const sel=$('#caseSel');
   sel.innerHTML='<option value="mystery">Mystery case (random)</option><optgroup label="Choose a case (diagnosis visible)">'+
@@ -646,20 +658,25 @@ function setSensorState(s){
   sensorState=s;
   const note=$('#sensorNote'),sens=$('#mode-sensor');
   note.classList.remove('warn');
-  if(s==='ok'){note.textContent='Motion sensor found. Partner practice is ready.';sens.disabled=false;}
-  else if(s==='ask'){note.textContent='This phone asks for motion access when you tap Start.';sens.disabled=false;}
+  const pick=()=>{$('#mode-sensor').checked=true;$('#sc-1').checked=true;};
+  if(s==='ok'){note.textContent='Motion sensor found. Partner practice is selected.';sens.disabled=false;pick();}
+  else if(s==='ask'){note.textContent='This phone asks for motion access when you tap Start.';sens.disabled=false;if(touchPhone)pick();}
   else{
-    note.textContent='No motion sensor can be read here, so the demo runs on this screen. For partner practice, open the hosted copy of this page on a phone.';
+    note.textContent=s==='brave'?BRAVE_FIX
+      :s==='nogyro'?'This phone has no gyroscope, so partner practice can\'t run on it. Use another phone, or the demo below.'
+      :touchPhone?'This browser isn\'t giving the page any motion data. Open the link in Chrome (Android) or Safari (iPhone).'
+      :'No motion sensor can be read here, so the demo runs on this screen. For partner practice, open this page on a phone.';
     note.classList.add('warn');sens.disabled=true;$('#mode-demo').checked=true;
   }
 }
 function probeSensor(){
-  if(typeof DeviceMotionEvent==='undefined'){setSensorState('none');return;}
-  if(typeof DeviceMotionEvent.requestPermission==='function'){setSensorState('ask');return;}
-  let got=false;
-  const h=e=>{const r=e.rotationRate;if(r&&(r.alpha!=null||r.beta!=null||r.gamma!=null))got=true;};
+  if(typeof DeviceMotionEvent==='undefined'){setSensorState(isBrave?'brave':'none');return;}
+  const canAsk=typeof DeviceMotionEvent.requestPermission==='function';
+  let any=false,rot=false;
+  const h=e=>{any=true;const r=e.rotationRate;if(r&&(r.alpha!=null||r.beta!=null||r.gamma!=null))rot=true;};
   window.addEventListener('devicemotion',h);
-  setTimeout(()=>{window.removeEventListener('devicemotion',h);setSensorState(got?'ok':'none');},1300);
+  setTimeout(()=>{window.removeEventListener('devicemotion',h);
+    setSensorState(rot?'ok':isBrave?'brave':canAsk?'ask':any?'nogyro':'none');},1300);
 }
 document.querySelectorAll('input[name="mode"]').forEach(r=>r.addEventListener('change',()=>{
   const v=document.querySelector('input[name="mode"]:checked').value;
@@ -670,12 +687,12 @@ function renderProgress(){
   const el=$('#progress');if(!log.length){el.hidden=true;return;}
   const sensorImps=log.filter(e=>e.mode==='sensor').reduce((s,e)=>s+e.n,0);
   const pct=Math.min(100,Math.round(sensorImps/160*100));
-  const rows=log.slice(-6).reverse().map(e=>`<tr><td>${new Date(e.d).toLocaleDateString(undefined,{day:'numeric',month:'short'})}</td><td>${e.mode==='sensor'?'Partner':'Demo'}</td><td>${caseById(e.caseId)?.name||e.caseId}</td><td class="num">${e.n}</td><td class="num">${e.n?Math.round(100*e.valid/e.n)+'%':'–'}</td><td>${e.correct==null?'–':e.correct?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</td></tr>`).join('');
+  const rows=log.slice(-6).reverse().map(e=>`<tr><td>${new Date(e.d).toLocaleDateString(undefined,{day:'numeric',month:'short'})}</td><td>${e.mode==='sensor'?'Partner':'Demo'}</td><td>${caseById(e.caseId)?.name||e.caseId}</td><td class="num">${e.n}</td><td class="num">${e.n?Math.round(100*e.valid/e.n)+'%':'–'}</td><td class="num">${e.grade==null?'–':e.grade}</td><td>${e.correct==null?'–':e.correct?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</td></tr>`).join('');
   el.hidden=false;
   el.innerHTML=`<h2 id="progH">Your practice</h2>
   <p><b class="mono">${sensorImps}</b> thrusts on a partner so far. Novices in the Bern study reached 80% valid impulses after about 160 thrusts with expert feedback.</p>
   <div class="bar" role="img" aria-label="${sensorImps} of 160 thrusts"><i style="width:${pct}%"></i></div>
-  <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Mode</th><th>Patient</th><th class="num">Thrusts</th><th class="num">Valid</th><th>Call</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Mode</th><th>Patient</th><th class="num">Thrusts</th><th class="num">Adequate</th><th class="num">Grade</th><th>Call</th></tr></thead><tbody>${rows}</tbody></table></div>
   <p class="small">Stored only in this browser.</p>`;
 }
 
@@ -715,8 +732,11 @@ function showCue(text,kind){
   clearTimeout(cueTimer);cueTimer=setTimeout(()=>{el.className='hud-cue';},1300);
 }
 function updateHud(){
-  const r=S.imps.filter(i=>i.side==='R').length,l=S.imps.length-r;
-  $('#hudCount').textContent=`R ${r} · L ${l}`;
+  const el=$('#hudCount');if(!S)return;
+  if(!S.coach){el.textContent=`Thrusts ${S.imps.length}`;return;}
+  const adq=S.imps.filter(i=>i.valid),aR=adq.filter(i=>i.side==='R').length,aL=adq.length-aR,bad=S.imps.length-adq.length;
+  el.innerHTML=`<span class="okc">✓ ${adq.length} adequate</span><span class="badc">✗ ${bad} failed</span><span class="sidep">R ${Math.min(aR,5)}/5 · L ${Math.min(aL,5)}/5</span>`;
+  if(!S.bothDone&&aR>=5&&aL>=5){S.bothDone=true;setTimeout(()=>showCue('Both sides done. Now gaze and cover','good'),1400);}
 }
 function onImpulseDone(imp){
   if(!S||!S.active)return;
@@ -733,7 +753,7 @@ function newSession(opts){
   const id=opts.caseId==='mystery'?CASES[Math.floor(Math.random()*CASES.length)].id:opts.caseId;
   const c=caseById(id);
   S={active:true,mode:opts.mode,caseId:id,case:c,picked:opts.caseId,coach:opts.coach,mag:opts.mag,imps:[],
-    rig:new Rig(c,{done:onImpulseDone}),gazeR:0,gazeL:0,coverSwitches:0,lastCover:null,rot:0,targetPt:null,
+    rig:new Rig(c,{done:onImpulseDone}),gazeR:0,gazeL:0,coverSwitches:0,goodSwitches:0,coverStart:0,bothDone:false,grade:null,lastCover:null,rot:0,targetPt:null,
     calib:{phase:'idle'},bias:[0,0,0],u:[-1,0,0],calibrated:false,running:false,lastMotion:0,lastFrame:0,wake:null};
   return S;
 }
@@ -746,14 +766,14 @@ async function startFromHome(){
   let notice='';
   if(mode==='sensor'&&typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){
     try{const r=await DeviceMotionEvent.requestPermission();if(r!=='granted')throw new Error('denied');}
-    catch(e){mode='demo';notice='Motion access was refused, so the demo is running on this screen instead.';}
+    catch(e){mode='demo';notice=isBrave?BRAVE_FIX:'Motion access was refused, so the demo is running on this screen instead.';}
   }
   beginSession({caseId,mode,coach,mag},notice);
 }
 function beginSession(opts,notice){
   newSession(opts);
   show('exam');
-  $('#hudCount').textContent='R 0 · L 0';$('#demoLast').textContent='';
+  updateHud();$('#demoLast').textContent='';
   const sensor=S.mode==='sensor';
   $('#demoBar').hidden=sensor;
   stage.classList.toggle('full',sensor);document.body.classList.toggle('locked',sensor);
@@ -796,7 +816,7 @@ function startCalibration(){
   step();
   setTimeout(()=>{
     if(!(S&&S.mode==='sensor'&&S.calib===C&&!S.lastMotion))return;
-    overlay(`<p class="big">No motion data</p><p>This page can't read the phone's gyroscope here. Open the hosted copy over HTTPS, or switch to the on-screen demo.</p><button class="btn primary" id="ovDemo">Switch to demo</button>`);
+    overlay(`<p class="big">No motion data</p><p>${isBrave?BRAVE_FIX:'This browser isn\'t passing the gyroscope to the page. Open the link in Chrome (Android) or Safari (iPhone), or switch to the on-screen demo.'}</p><button class="btn primary" id="ovDemo">Switch to demo</button>`);
     $('#ovDemo').onclick=switchToDemo;
   },6800);
 }
@@ -858,7 +878,11 @@ function applyTouches(){
   for(const p of ptrs.values()){if(p.kind==='cover'){if(p.eye==='L')L=true;else R=true;}else if(p.kind==='gaze')gz=p;}
   P.setCover(L,R);
   const one=L!==R?(L?'L':'R'):null;
-  if(one&&one!==S.lastCover){if(S.lastCover)S.coverSwitches++;S.lastCover=one;}
+  if(one&&one!==S.lastCover){
+    const now=performance.now();
+    if(S.lastCover){S.coverSwitches++;if(now-S.coverStart>=1000)S.goodSwitches++;}
+    S.lastCover=one;S.coverStart=now;
+  }
   const g=S.geom;
   if(gz&&g){P.tgtX=clamp((g.W/2-gz.f.x)/(g.W/2)*34,-32,32);P.tgtY=clamp((g.H/2-gz.f.y)/(g.H/2)*24,-22,22);S.targetPt=gz.f;}
   else{P.tgtX=0;P.tgtY=0;S.targetPt=null;}
@@ -907,7 +931,7 @@ function endSession(toResults){
   try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}
   stage.classList.remove('full');document.body.classList.remove('locked');
   ptrs.clear();overlay(null);
-  if(toResults)renderQuiz();
+  if(toResults)renderGrade();
 }
 $('#doneBtn').addEventListener('click',()=>endSession(true));
 $('#rotBtn').addEventListener('click',()=>{if(S){S.rot=(S.rot+90)%360;S.wasPortrait=innerHeight>innerWidth;}});
@@ -1005,11 +1029,65 @@ function vhitSVG(list,side,id){
   for(const i of list)s+=`<polyline class="tr-eye ln-${side}" points="${pts(i.trace,'e')}"/>`;
   return s+'</g></svg>';
 }
+/* Exam grade: what the phone can measure, out of 100 */
+const BANDS=[[85,'Practice-ready'],[70,'Minor corrections'],[50,'Needs prompting'],[0,'Needs guidance']];
+function gradeExam(){
+  const imps=S.imps,n=imps.length,adq=imps.filter(i=>i.valid);
+  const aR=adq.filter(i=>i.side==='R').length,aL=adq.length-aR,failed=n-adq.length,s=summarize(imps);
+  const rows=[],add=(k,max,pts,detail,tip)=>rows.push({k,max,pts:clamp(pts,0,max),detail,tip});
+  add('Adequate thrusts (H)',20,20*(Math.min(aR,5)+Math.min(aL,5))/10,`${aR} right, ${aL} left · 5 each needed`,'Keep going until both sides have five adequate thrusts.');
+  add('Thrust accuracy (H)',15,n?15*adq.length/n:0,`${adq.length} adequate, ${failed} failed`,'Each failed attempt costs points. Set up calmly, then make every thrust count.');
+  let cons=0,consD='needs thrusts to both sides';
+  if(s.R.length&&s.L.length){cons=10*clamp(1-(s.asym-0.2)/0.3,0,1);consD=`right median ${f0(s.mR)} vs left ${f0(s.mL)}°/s`;}
+  add('Side-to-side consistency (H)',10,cons,consD,'Use the same push in both directions.');
+  let unp=0,unpD='needs at least 6 thrusts';
+  if(n>=6){
+    const side=7.5*clamp(1-(Math.abs(s.altRate-0.5)-0.25)/0.25,0,1),time=Number.isFinite(s.icv)?7.5*clamp((s.icv-0.1)/0.2,0,1):0;
+    unp=side+time;unpD=`sides alternated ${f0(s.altRate*100)}% · pause varied ±${f0(s.icv*100)}%`;
+  }
+  add('Unpredictability (H)',15,unp,unpD,'Mix the sides (R R L R L L) and vary the pause before each thrust.');
+  add('Side gaze (N)',15,7.5*clamp(S.gazeR/2,0,1)+7.5*clamp(S.gazeL/2,0,1),`right ${S.gazeR.toFixed(1)} s · left ${S.gazeL.toFixed(1)} s · 2 s each needed`,'Hold gaze to each side for at least 2 seconds to see whether the nystagmus changes direction.');
+  add('Alternate cover (TS)',15,15*Math.min(S.goodSwitches,3)/3,`${S.goodSwitches} switch${S.goodSwitches===1?'':'es'} with the cover held 1 s or more · 3 needed`,'Hold the cover on each eye for a second, then move straight to the other eye. Do three switches.');
+  const harsh=imps.filter(i=>i.peak>TGT.vMax||i.amp>30).length;
+  add('Safe force',10,10-3*harsh,harsh?`${harsh} thrust${harsh===1?'':'s'} over 300°/s or 30°`:'no forceful thrusts','Over 300°/s or 30° adds neck risk without adding information.');
+  const total=Math.round(rows.reduce((a,r)=>a+r.pts,0));
+  return {rows,total,band:BANDS.find(b=>total>=b[0])[1],aR,aL,failed,adequate:adq.length,s};
+}
+function renderGrade(){
+  const G=gradeExam();S.grade=G;
+  S.gazeDone=S.gazeR>=2&&S.gazeL>=2;S.coverDone=S.goodSwitches>=2;
+  const s=G.s;
+  const rows=G.rows.map(r=>{const full=r.pts>=r.max-0.01;return `<tr><td>${r.k}</td><td class="num">${f0(r.pts)}/${r.max}</td><td>${r.detail}${full?'':`<br><span class="small">${r.tip}</span>`}</td></tr>`;}).join('');
+  $('#results').innerHTML=`<header class="masthead"><p class="eyebrow">Step 1 of 3 · how you examined</p>
+    <div class="grade"><b class="mono">${G.total}</b><span>/100</span></div>
+    <h1>${G.band}</h1>
+    <p class="lead">${G.adequate} adequate and ${G.failed} failed thrust${G.failed===1?'':'s'}. Side gaze ${S.gazeDone?'tested':'not tested'}, alternate cover ${S.coverDone?'tested':'not tested'}.</p>
+    ${S.mode==='demo'?'<p class="note">Demo session: thrust scores come from the on-screen controls, not your hands. Partner practice grades your technique.</p>':''}
+  </header>
+  <section aria-labelledby="gbH"><h2 id="gbH">Grade breakdown</h2>
+    <div class="tbl-wrap"><table><thead><tr><th>Part of the exam</th><th class="num">Points</th><th>What counted</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td><b>Total</b></td><td class="num"><b>${G.total}/100</b></td><td>${G.band}</td></tr></tfoot></table></div>
+    <p class="small">85 or more: practice-ready · 70–84: minor corrections · 50–69: needs prompting · under 50: needs guidance. The phone grades only what it can measure. Instructions to the patient and hand position (Ottawa items 1 and 2) need an observer, so use the checklist below.</p>
+  </section>
+  <section aria-labelledby="tH"><h2 id="tH">Your thrusts</h2>
+    <div>${metricsHTML(s)}</div>
+    ${s.n?`<div><p class="small" style="margin-bottom:6px">Order of thrusts</p><div class="seq">${S.imps.map(i=>`<span class="${i.side}${i.valid?'':' fail'}" title="${i.valid?'adequate':'failed'}">${i.side}</span>`).join('')}</div><p class="small" style="margin-top:6px">Faded squares were failed attempts.</p></div>
+    <figure class="chart solo">${scatterSVG(S.imps)}<figcaption><span><span class="sw R"></span>right</span><span><span class="sw L"></span>left</span><span><span class="sw Z"></span>target: 10–20°, 150–300°/s</span></figcaption></figure>`:''}
+  </section>
+  <section aria-labelledby="oH"><h2 id="oH">For the observer</h2><p class="small">The phone can't see these. Ask whoever watched you.</p>
+    <div class="check">
+      <label><input type="checkbox" id="ck1"> Asked about neck problems, then told the patient to keep their eyes on the examiner's nose and relax the neck (OCAT 1)</label>
+      <label><input type="checkbox" id="ck2"> Hands on the sides of the head, clear of the jaw (OCAT 2)</label>
+      <label><input type="checkbox" id="ck3"> Standing close with elbows bent, not arms locked straight (OCAT 2)</label>
+      <label><input type="checkbox" id="ck4"> Head flexed about 30° before thrusting (OCAT 2)</label>
+    </div></section>
+  <div class="actions"><button class="btn primary" id="toQuiz">Next: record your findings</button></div>`;
+  show('results');
+  $('#toQuiz').onclick=renderQuiz;
+}
 function renderQuiz(){
   const r=S.imps.filter(i=>i.side==='R').length,l=S.imps.length-r;
-  S.gazeDone=S.gazeR>0.8&&S.gazeL>0.8;S.coverDone=S.coverSwitches>=2;
   const res=$('#results');
-  res.innerHTML=`<header class="masthead"><p class="eyebrow">Step 1 of 2 · commit before you see the traces</p><h1>What did you see?</h1>
+  res.innerHTML=`<header class="masthead"><p class="eyebrow">Step 2 of 3 · commit before you see the traces</p><h1>What did you see?</h1>
   <p class="lead">${S.case.vignette}</p>
   <p class="mono small">${S.imps.length} thrusts recorded (${r} right, ${l} left) · side gaze ${S.gazeDone?'tested':'not tested'} · alternate cover ${S.coverDone?'tested':'not tested'}</p></header>
   <form id="quiz" class="panel quiz">${QUIZ.map(q=>`<fieldset><legend>${q.label}</legend><div class="seg">${q.opts.map(o=>`<input type="radio" name="q-${q.id}" id="q-${q.id}-${o[0]}" value="${o[0]}"><label for="q-${q.id}-${o[0]}">${o[1]}</label>`).join('')}</div></fieldset>`).join('')}
@@ -1044,39 +1122,27 @@ function renderReveal(ans){
     correct=ans.call===key.call;
     rowsQ=QUIZ.map(q=>{const ok=ans[q.id]===key[q.id];return `<tr><td>${q.label}</td><td>${optLabel(q.id,ans[q.id])}</td><td>${optLabel(q.id,key[q.id])}</td><td>${ok?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</td></tr>`;}).join('');
   }
-  const log=store.get('hintsTrainer.log.v1',[]);log.push({d:Date.now(),mode:S.mode,caseId:c.id,n:s.n,valid:s.valid,medV:s.medV,medA:s.medA,correct});store.set('hintsTrainer.log.v1',log.slice(-200));
+  const G=S.grade||gradeExam(),nRight=ans?QUIZ.filter(q=>ans[q.id]===key[q.id]).length:null;
+  const log=store.get('hintsTrainer.log.v1',[]);log.push({d:Date.now(),mode:S.mode,caseId:c.id,n:s.n,valid:s.valid,medV:s.medV,medA:s.medA,correct,grade:G.total});store.set('hintsTrainer.log.v1',log.slice(-200));
   const notes=linkNotes(s);
   const R=S.imps.filter(i=>i.side==='R'),L=S.imps.filter(i=>i.side==='L');
   const tbl=S.imps.map((i,k)=>{const ov=i.sacs.filter(x=>x.t>i.dur),co=i.sacs.filter(x=>x.t<=i.dur);
     const eye=ov.length?`overt ${f0(Math.max(...ov.map(x=>x.amp)))}°`:co.length?'covert only':'on target';
     return `<tr><td class="num">${k+1}</td><td><span class="sw ${i.side}"></span>${i.side==='R'?'Right':'Left'}</td><td class="num">${f0(i.peak)}</td><td class="num">${f0(i.amp)}</td><td class="num">${f0(i.acc)}</td><td class="num">${f2(i.gain)}</td><td>${eye}</td><td>${i.valid?'<span class="ok">valid</span>':i.flags.map(x=>x[1]).join(', ')}</td></tr>`;}).join('');
   const verdict=ans?`<p class="lead">Your conclusion: <b>${optLabel('call',ans.call)}</b> ${correct?'<span class="ok">✓ correct</span>':`<span class="bad">✗</span> The answer was <b>${optLabel('call',key.call)}</b>.`}</p>`:'<p class="lead">You skipped the findings. Here is the answer.</p>';
-  $('#results').innerHTML=`<header class="masthead verdict"><p class="eyebrow">Step 2 of 2 · the patient had</p><h1>${c.name}</h1>${verdict}</header>
+  $('#results').innerHTML=`<header class="masthead verdict"><p class="eyebrow">Step 3 of 3 · the patient had</p><h1>${c.name}</h1>${verdict}
+  <p class="mono small">Exam grade ${G.total}/100 · ${G.band}${ans?` · findings ${nRight} of ${QUIZ.length} correct`:''}</p></header>
   ${ans?`<section aria-labelledby="fH"><h2 id="fH">Findings</h2><div class="tbl-wrap"><table><thead><tr><th>Finding</th><th>You</th><th>Answer</th><th></th></tr></thead><tbody>${rowsQ}</tbody></table></div></section>`:''}
   <section class="callout"><p>${c.teach}</p></section>
   ${notes.length?`<section aria-labelledby="lH"><h2 id="lH">How your hands shaped what you saw</h2>${notes.map(n=>`<p>${n}</p>`).join('')}</section>`:''}
-  <section aria-labelledby="tH"><h2 id="tH">Your thrusts</h2>
-    ${S.mode==='demo'?'<p class="note">These thrusts came from the on-screen controls, so they say nothing about your hands. Partner practice scores your technique.</p>':''}
-    <div class="stats"><div class="stat"><b class="mono">${s.valid}/${s.n}</b><span>valid thrusts</span></div><div class="stat"><b class="mono">${f0(s.medV)}</b><span>median peak °/s</span></div><div class="stat"><b class="mono">${f0(s.medA)}°</b><span>median amplitude</span></div></div>
-    <div>${metricsHTML(s)}</div>
-    ${s.n?`<div><p class="small" style="margin-bottom:6px">Order of thrusts</p><div class="seq">${S.imps.map(i=>`<span class="${i.side}">${i.side}</span>`).join('')}</div></div>`:''}
-  </section>
   ${s.n?`<section aria-labelledby="cH"><h2 id="cH">Traces</h2>
     <div class="charts">
       <figure class="chart">${vhitSVG(R,'R','clipR')}<figcaption><span><span class="sw H"></span>head velocity (°/s)</span><span><span class="sw R"></span>eye velocity, sign flipped</span></figcaption></figure>
       <figure class="chart">${vhitSVG(L,'L','clipL')}<figcaption><span><span class="sw H"></span>head velocity (°/s)</span><span><span class="sw L"></span>eye velocity, sign flipped</span></figcaption></figure>
-      <figure class="chart">${scatterSVG(S.imps)}<figcaption><span><span class="sw R"></span>right</span><span><span class="sw L"></span>left</span><span><span class="sw Z"></span>target: 10–20°, 150–300°/s</span></figcaption></figure>
     </div>
     <p class="small">Read the traces like a video HIT report. When the reflex works, the eye curve lies on the head curve and gain sits near 1. Spikes after the head curve ends are overt catch-up saccades; spikes inside it are covert.</p>
     <div class="tbl-wrap"><table><thead><tr><th class="num">#</th><th>Side</th><th class="num">Peak °/s</th><th class="num">Amp °</th><th class="num">Onset °/s²</th><th class="num">Gain</th><th>Eyes</th><th>Thrust</th></tr></thead><tbody>${tbl}</tbody></table></div>
   </section>`:''}
-  <section aria-labelledby="oH"><h2 id="oH">For the observer</h2><p class="small">The phone can't see these. Ask whoever watched you.</p>
-    <div class="check">
-      <label><input type="checkbox" id="ck1"> Asked about neck problems, then told the patient to keep their eyes on the examiner's nose and relax the neck (OCAT 1)</label>
-      <label><input type="checkbox" id="ck2"> Hands on the sides of the head, clear of the jaw (OCAT 2)</label>
-      <label><input type="checkbox" id="ck3"> Standing close with elbows bent, not arms locked straight (OCAT 2)</label>
-      <label><input type="checkbox" id="ck4"> Head flexed about 30° before thrusting (OCAT 2)</label>
-    </div></section>
   <div class="actions"><button class="btn primary" id="again">Same patient again</button><button class="btn" id="another">New mystery case</button><button class="btn" id="homeBtn">Back to start</button></div>`;
   const prev={caseId:c.id,mode:S.mode,coach:S.coach,mag:S.mag};
   $('#again').onclick=()=>beginSession(prev,'');
