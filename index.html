@@ -176,6 +176,7 @@ tfoot td{border-top:2px solid var(--rule);border-bottom:0}
 .quiz fieldset{border:0;padding:0;margin:0;display:grid;gap:8px;min-width:0}
 .quiz legend{font-weight:700;padding:0;margin-bottom:8px}
 .ok{color:var(--good);font-weight:700}
+.miss{color:var(--muted);font-weight:700;white-space:nowrap}
 .bad{color:var(--warn);font-weight:700}
 .callout{border-left:4px solid var(--accent);padding:4px 0 4px 14px;display:grid;gap:6px}
 .check{display:grid;gap:10px}
@@ -375,11 +376,11 @@ const CASES=[
 const caseById=id=>CASES.find(c=>c.id===id);
 
 const QUIZ=[
- {id:'rhit',label:"Thrusts to the patient's right",opts:[['normal','Eyes stayed on me'],['saccade','Catch-up saccade']]},
- {id:'lhit',label:"Thrusts to the patient's left",opts:[['normal','Eyes stayed on me'],['saccade','Catch-up saccade']]},
- {id:'nyst',label:'Nystagmus while the patient looks at you',opts:[['none','None'],['left',"Fast phase to patient's left"],['right',"Fast phase to patient's right"]]},
- {id:'gaze',label:'Nystagmus on side gaze',opts:[['none','None'],['same','Same direction both sides'],['changing','Changes direction'],['untested',"Didn't test"]]},
- {id:'skew',label:'Alternate cover test',opts:[['no','No vertical refixation'],['yes','Vertical refixation (skew)'],['untested',"Didn't test"]]},
+ {id:'rhit',label:"Thrusts to the patient's right",opts:[['normal','Eyes stayed on me'],['saccade','Catch-up saccade'],['focus','Too focused on my technique to notice']]},
+ {id:'lhit',label:"Thrusts to the patient's left",opts:[['normal','Eyes stayed on me'],['saccade','Catch-up saccade'],['focus','Too focused on my technique to notice']]},
+ {id:'nyst',label:'Nystagmus while the patient looks at you',opts:[['none','None'],['left',"Fast phase to patient's left"],['right',"Fast phase to patient's right"],['focus','Too focused on my technique to notice']]},
+ {id:'gaze',label:'Nystagmus on side gaze',opts:[['none','None'],['same','Same direction both sides'],['changing','Changes direction'],['untested',"Didn't test"],['focus','Too focused on my technique to notice']]},
+ {id:'skew',label:'Alternate cover test',opts:[['no','No vertical refixation'],['yes','Vertical refixation (skew)'],['untested',"Didn't test"],['focus','Too focused on my technique to notice']]},
  {id:'call',label:'Your conclusion',opts:[['normal','Normal'],['rightPeripheral','Right peripheral'],['leftPeripheral','Left peripheral'],['bilateral','Bilateral peripheral'],['central','Central: image now']]}
 ];
 const optLabel=(qid,v)=>{const q=QUIZ.find(x=>x.id===qid);const o=q&&q.opts.find(x=>x[0]===v);return o?o[1]:'No answer';};
@@ -1120,18 +1121,19 @@ function renderReveal(ans){
   let correct=null,rowsQ='';
   if(ans){
     correct=ans.call===key.call;
-    rowsQ=QUIZ.map(q=>{const ok=ans[q.id]===key[q.id];return `<tr><td>${q.label}</td><td>${optLabel(q.id,ans[q.id])}</td><td>${optLabel(q.id,key[q.id])}</td><td>${ok?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</td></tr>`;}).join('');
+    rowsQ=QUIZ.map(q=>{const ok=ans[q.id]===key[q.id],fo=ans[q.id]==='focus';return `<tr><td>${q.label}</td><td>${optLabel(q.id,ans[q.id])}</td><td>${optLabel(q.id,key[q.id])}</td><td>${ok?'<span class="ok">✓</span>':fo?'<span class="miss" title="Missed while focusing on technique">○ missed</span>':'<span class="bad">✗</span>'}</td></tr>`;}).join('');
   }
-  const G=S.grade||gradeExam(),nRight=ans?QUIZ.filter(q=>ans[q.id]===key[q.id]).length:null;
-  const log=store.get('hintsTrainer.log.v1',[]);log.push({d:Date.now(),mode:S.mode,caseId:c.id,n:s.n,valid:s.valid,medV:s.medV,medA:s.medA,correct,grade:G.total});store.set('hintsTrainer.log.v1',log.slice(-200));
+  const G=S.grade||gradeExam(),nRight=ans?QUIZ.filter(q=>ans[q.id]===key[q.id]).length:null,nFocus=ans?QUIZ.filter(q=>ans[q.id]==='focus').length:0;
+  const log=store.get('hintsTrainer.log.v1',[]);log.push({d:Date.now(),mode:S.mode,caseId:c.id,n:s.n,valid:s.valid,medV:s.medV,medA:s.medA,correct,grade:G.total,focus:nFocus});store.set('hintsTrainer.log.v1',log.slice(-200));
   const notes=linkNotes(s);
+  if(nFocus)notes.unshift(`You missed ${nFocus} finding${nFocus===1?'':'s'} because your attention was on your hands. That is normal early on: the thrust has to become automatic before your eyes are free to watch the patient. Do coach-mode sets until it feels automatic, then switch to exam mode and watch only the eyes.`);
   const R=S.imps.filter(i=>i.side==='R'),L=S.imps.filter(i=>i.side==='L');
   const tbl=S.imps.map((i,k)=>{const ov=i.sacs.filter(x=>x.t>i.dur),co=i.sacs.filter(x=>x.t<=i.dur);
     const eye=ov.length?`overt ${f0(Math.max(...ov.map(x=>x.amp)))}°`:co.length?'covert only':'on target';
     return `<tr><td class="num">${k+1}</td><td><span class="sw ${i.side}"></span>${i.side==='R'?'Right':'Left'}</td><td class="num">${f0(i.peak)}</td><td class="num">${f0(i.amp)}</td><td class="num">${f0(i.acc)}</td><td class="num">${f2(i.gain)}</td><td>${eye}</td><td>${i.valid?'<span class="ok">valid</span>':i.flags.map(x=>x[1]).join(', ')}</td></tr>`;}).join('');
   const verdict=ans?`<p class="lead">Your conclusion: <b>${optLabel('call',ans.call)}</b> ${correct?'<span class="ok">✓ correct</span>':`<span class="bad">✗</span> The answer was <b>${optLabel('call',key.call)}</b>.`}</p>`:'<p class="lead">You skipped the findings. Here is the answer.</p>';
   $('#results').innerHTML=`<header class="masthead verdict"><p class="eyebrow">Step 3 of 3 · the patient had</p><h1>${c.name}</h1>${verdict}
-  <p class="mono small">Exam grade ${G.total}/100 · ${G.band}${ans?` · findings ${nRight} of ${QUIZ.length} correct`:''}</p></header>
+  <p class="mono small">Exam grade ${G.total}/100 · ${G.band}${ans?` · findings ${nRight} of ${QUIZ.length} correct`:''}${nFocus?` · ${nFocus} missed while focusing on technique`:''}</p></header>
   ${ans?`<section aria-labelledby="fH"><h2 id="fH">Findings</h2><div class="tbl-wrap"><table><thead><tr><th>Finding</th><th>You</th><th>Answer</th><th></th></tr></thead><tbody>${rowsQ}</tbody></table></div></section>`:''}
   <section class="callout"><p>${c.teach}</p></section>
   ${notes.length?`<section aria-labelledby="lH"><h2 id="lH">How your hands shaped what you saw</h2>${notes.map(n=>`<p>${n}</p>`).join('')}</section>`:''}
