@@ -1,0 +1,1098 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f12">
+<title>HINTS Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<style>
+/* Layout: a single instrument-panel column for setup and results; the exam itself is a full-bleed "device screen" that stays dark in both themes */
+:root{
+  --paper:#f1f4f3; --panel:#ffffff; --ink:#15212b; --muted:#566673; --rule:#d2dade; --grid:#e4e9ec;
+  --accent:#e2a400; --accent-ink:#1d1500; --accent-soft:#fbf0c9;
+  --good:#1d7a4c; --good-soft:#dcf1e5; --warn:#b4530a; --warn-soft:#fce8d7;
+  --right:#c8372d; --left:#2f5fb3;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0e1519; --panel:#152027; --ink:#e3eaee; --muted:#93a4b0; --rule:#2a3943; --grid:#1f2c35;
+    --accent:#f2b632; --accent-ink:#1d1500; --accent-soft:#3a2f10;
+    --good:#4cc38a; --good-soft:#123222; --warn:#f08c3a; --warn-soft:#3a2312;
+    --right:#f2584b; --left:#4f8ef0; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0e1519; --panel:#152027; --ink:#e3eaee; --muted:#93a4b0; --rule:#2a3943; --grid:#1f2c35;
+  --accent:#f2b632; --accent-ink:#1d1500; --accent-soft:#3a2f10;
+  --good:#4cc38a; --good-soft:#123222; --warn:#f08c3a; --warn-soft:#3a2312;
+  --right:#f2584b; --left:#4f8ef0; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--f-body);-webkit-font-smoothing:antialiased}
+body.locked{overflow:hidden}
+.wrap{max-width:820px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 64px;display:grid;gap:36px}
+h1,h2,h3{font-family:var(--f-display);font-stretch:78%;line-height:1.04;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.6rem,8vw,4rem);font-weight:800;letter-spacing:-.012em}
+h2{font-size:1.7rem;font-weight:750}
+h3{font-size:1.15rem;font-weight:700;font-stretch:88%}
+p{margin:0;max-width:65ch}
+a{color:inherit;text-decoration-color:var(--accent);text-decoration-thickness:2px;text-underline-offset:3px}
+.eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0}
+.lead{font-size:1.12rem;color:var(--ink)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.small{font-size:.85rem;color:var(--muted)}
+.masthead{display:grid;gap:12px}
+section{display:grid;gap:14px;min-width:0}
+
+/* hero device screen */
+.hero{margin:0;display:grid;gap:10px}
+.screen{background:#0b0f12;border-radius:26px;padding:10px;box-shadow:0 0 0 1px #000 inset,0 18px 40px -24px rgba(0,0,0,.6);position:relative}
+.screen canvas{display:block;width:100%;aspect-ratio:2.15/1;border-radius:18px}
+.hero figcaption{display:flex;gap:10px;align-items:baseline;font-size:.98rem;min-height:3.1em}
+.side-tag{font:700 .72rem/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:5px 7px;border-radius:5px;color:#fff;flex:none}
+.side-tag[data-side="R"]{background:var(--right)}
+.side-tag[data-side="L"]{background:var(--left)}
+.play{position:absolute;inset:auto 18px 18px auto}
+
+/* panel + controls */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:16px;padding:20px;display:grid;gap:18px;min-width:0}
+.field{display:grid;gap:8px}
+.field-label{font-weight:700;font-size:.95rem}
+.note{font-size:.88rem;color:var(--muted)}
+.note.warn{color:var(--warn)}
+.seg{display:flex;flex-wrap:wrap;gap:6px;border:0;padding:0;margin:0;min-width:0}
+.seg input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.seg label{padding:9px 13px;border:1px solid var(--rule);border-radius:999px;cursor:pointer;background:var(--paper);font-size:.93rem;line-height:1.25}
+.seg input:checked+label{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.seg input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+.seg input:disabled+label{opacity:.45;cursor:not-allowed}
+select{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:10px 12px;max-width:100%}
+select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{font:700 1rem/1.15 var(--f-body);padding:12px 18px;border-radius:11px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;min-height:46px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn:active{transform:translateY(1px)}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+
+/* steps + spec table */
+ol.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:grid;gap:14px}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:2.2rem 1fr;gap:4px 12px;align-items:baseline}
+ol.steps li::before{content:counter(s);grid-row:span 2;font:800 1.5rem/1 var(--f-display);font-stretch:75%;color:var(--accent)}
+ol.steps b{font-weight:700}
+ol.steps span{color:var(--muted);grid-column:2}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--rule);border-radius:12px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{padding:10px 12px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font:600 .72rem/1.2 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.target{font-family:var(--f-mono);white-space:nowrap;font-weight:600}
+.stats{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:end}
+.stat b{display:block;font:800 2.6rem/1 var(--f-display);font-stretch:75%}
+.stat span{font-size:.85rem;color:var(--muted)}
+
+/* exam stage */
+.stage{position:relative;background:#0b0f12;border-radius:20px;overflow:hidden;aspect-ratio:2.1/1;width:100%;max-width:100%;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+@media (max-width:560px){.stage{aspect-ratio:1.5/1}}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage.full{position:fixed;inset:0;aspect-ratio:auto;border-radius:0;z-index:100;height:100%}
+.hud{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:10px 12px 0;pointer-events:none;color:#e6ecef;font:500 .8rem/1.2 var(--f-mono)}
+.stage.full .hud{padding-top:max(10px,env(safe-area-inset-top,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+.hud-count{background:rgba(0,0,0,.45);padding:6px 9px;border-radius:7px}
+.hud-cue{font:800 1.5rem/1 var(--f-display);font-stretch:80%;letter-spacing:.02em;padding:4px 10px;border-radius:8px;opacity:0;transition:opacity .18s}
+.hud-cue.on{opacity:1}
+.hud-cue.good{background:#1d7a4c;color:#fff}
+.hud-cue.warn{background:#f2b632;color:#1d1500}
+.hud-actions{display:flex;gap:6px}
+.hud-btn{pointer-events:auto;font:700 .9rem/1 var(--f-body);background:rgba(255,255,255,.92);color:#11181d;border:0;border-radius:9px;padding:10px 14px;cursor:pointer}
+.hud-btn:focus-visible{outline:3px solid #f2b632;outline-offset:2px}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(8,11,13,.9);color:#eef3f5;padding:20px;text-align:center;overflow:auto}
+.overlay-inner{display:grid;gap:14px;justify-items:center;max-width:560px}
+.overlay .big{font:800 clamp(1.5rem,5.4vw,2.6rem)/1.08 var(--f-display);font-stretch:80%;text-wrap:balance}
+.overlay p{color:#c9d4da}
+.overlay .eyebrow{color:#9fb0ba}
+.overlay .btn{border-color:#eef3f5;color:#eef3f5}
+.overlay .btn.primary{border-color:#f2b632;background:#f2b632;color:#1d1500}
+.vig{font-size:1.05rem;color:#eef3f5!important}
+.demo-bar{display:grid;gap:12px}
+.thrust-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.thrust-row .btn{display:flex;justify-content:center;align-items:center;gap:8px}
+.thrust-row .btn[data-dir="1"]{border-color:var(--right)}
+.thrust-row .btn[data-dir="-1"]{border-color:var(--left)}
+.demo-last{min-height:1.4em;font-size:.9rem}
+
+/* results */
+.verdict{display:grid;gap:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;font:700 .78rem/1 var(--f-body);padding:6px 9px;border-radius:999px;white-space:nowrap}
+.chip.good{background:var(--good-soft);color:var(--good)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.na{background:var(--grid);color:var(--muted)}
+.chip i{font-style:normal;font-weight:800}
+.metric{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.metric:last-child{border-bottom:0}
+.metric h3{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.metric .ocat{font:500 .7rem/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-stretch:100%}
+.metric .val{grid-column:1/-1;font-family:var(--f-mono);font-size:.88rem;color:var(--muted)}
+.metric .cue{grid-column:1/-1;font-size:.95rem}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:18px}
+.chart{margin:0;display:grid;gap:8px;min-width:0;background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:12px}
+.chart svg{width:100%;height:auto;display:block}
+.chart figcaption{font-size:.84rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 14px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.sw.R{background:var(--right)} .sw.L{background:var(--left)} .sw.H{background:var(--muted)} .sw.Z{background:var(--accent-soft);outline:1px dashed var(--accent)}
+.gridl{stroke:var(--grid);stroke-width:1}
+.axl{stroke:var(--rule);stroke-width:1}
+.axt{fill:var(--muted);font:11px var(--f-mono)}
+.ttl{fill:var(--ink);font:700 12px var(--f-body)}
+.tr-head{fill:none;stroke:var(--muted);stroke-width:1.5;opacity:.55}
+.tr-eye{fill:none;stroke-width:2;opacity:.9;stroke-linejoin:round}
+.ln-R{stroke:var(--right)} .ln-L{stroke:var(--left)}
+.dot{stroke:var(--panel);stroke-width:2}
+.dot-R{fill:var(--right)} .dot-L{fill:var(--left)}
+.zone{fill:var(--accent-soft);stroke:var(--accent);stroke-dasharray:4 3}
+.zone-t{fill:var(--accent-ink);font:600 10px var(--f-mono)}
+:root:not([data-theme="light"]) .zone-t{fill:var(--accent)}
+.seq{display:flex;flex-wrap:wrap;gap:4px}
+.seq span{font:700 .78rem/1 var(--f-mono);width:24px;height:24px;display:grid;place-items:center;border-radius:5px;color:#fff}
+.seq .R{background:var(--right)} .seq .L{background:var(--left)}
+.quiz fieldset{border:0;padding:0;margin:0;display:grid;gap:8px;min-width:0}
+.quiz legend{font-weight:700;padding:0;margin-bottom:8px}
+.ok{color:var(--good);font-weight:700}
+.bad{color:var(--warn);font-weight:700}
+.callout{border-left:4px solid var(--accent);padding:4px 0 4px 14px;display:grid;gap:6px}
+.check{display:grid;gap:10px}
+.check label{display:flex;gap:10px;align-items:flex-start}
+.check input{width:20px;height:20px;accent-color:var(--good);flex:none;margin-top:2px}
+.bar{height:10px;border-radius:5px;background:var(--grid);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--good)}
+footer{display:grid;gap:10px;font-size:.88rem;color:var(--muted);border-top:1px solid var(--rule);padding-top:20px}
+footer ul{margin:0;padding-left:18px;display:grid;gap:4px}
+@media (prefers-reduced-motion: reduce){.hud-cue{transition:none}}
+</style>
+
+<main id="home" class="wrap view">
+  <header class="masthead">
+    <p class="eyebrow">Bedside vestibular exam · simulated patient</p>
+    <h1>HINTS Trainer</h1>
+    <p class="lead">Strap a phone across a colleague's eyes and do the head impulse test on them. The phone measures every thrust and plays the eyes of a simulated patient, so a slow or sloppy thrust hides the deficit exactly as it would in clinic.</p>
+  </header>
+
+  <figure class="hero">
+    <div class="screen">
+      <canvas id="heroCanvas" role="img" aria-label="Animated eyes of a patient with right vestibular neuritis during alternating head impulses"></canvas>
+      <button class="btn primary play" id="heroPlay" hidden>Play</button>
+    </div>
+    <figcaption id="heroCap"><span class="side-tag" data-side="L">Left</span><span>Thrust to the patient's left: the eyes stay locked on you.</span></figcaption>
+  </figure>
+
+  <section class="panel" aria-labelledby="startH">
+    <h2 id="startH">Start a session</h2>
+    <div class="field">
+      <span class="field-label" id="modeL">How you'll practice</span>
+      <div class="seg" role="radiogroup" aria-labelledby="modeL">
+        <input type="radio" name="mode" id="mode-sensor" value="sensor"><label for="mode-sensor">On a partner (phone sensor)</label>
+        <input type="radio" name="mode" id="mode-demo" value="demo" checked><label for="mode-demo">On this screen (demo)</label>
+      </div>
+      <p class="note" id="sensorNote">Checking for a motion sensor…</p>
+    </div>
+    <div class="field">
+      <label class="field-label" for="caseSel">Patient</label>
+      <select id="caseSel"></select>
+    </div>
+    <div class="field">
+      <span class="field-label" id="fbL">Feedback</span>
+      <div class="seg" role="radiogroup" aria-labelledby="fbL">
+        <input type="radio" name="fb" id="fb-coach" value="coach" checked><label for="fb-coach">Coach: tone and cue after every thrust</label>
+        <input type="radio" name="fb" id="fb-exam" value="exam"><label for="fb-exam">Exam: silent until the end</label>
+      </div>
+    </div>
+    <div class="field">
+      <span class="field-label" id="scL">Eye movement scale</span>
+      <div class="seg" role="radiogroup" aria-labelledby="scL">
+        <input type="radio" name="scale" id="sc-1" value="1"><label for="sc-1">Life size</label>
+        <input type="radio" name="scale" id="sc-2" value="2" checked><label for="sc-2">Magnified ×2</label>
+      </div>
+    </div>
+    <div class="actions"><button class="btn primary" id="startBtn">Start</button></div>
+  </section>
+
+  <section aria-labelledby="setupH">
+    <h2 id="setupH">Partner practice, step by step</h2>
+    <ol class="steps">
+      <li><b>Mount the phone.</b><span>Landscape, across your partner's eyes, screen facing out. A running armband around the head or a Velcro strap holds it. Turn off rotation lock. Skip partners with neck problems.</span></li>
+      <li><b>Position yourself.</b><span>Partner seated, you standing close in front with elbows bent. Hands on the sides of the head, clear of the jaw. Tilt the head down about 30° so the horizontal canals sit level.</span></li>
+      <li><b>Calibrate.</b><span>Tap Calibrate and mount the phone during the countdown. Hold the head still, then turn it slowly to the patient's right (your left) and back.</span></li>
+      <li><b>Thrust.</b><span>Small (10–20°), fast (150–300°/s), abrupt, then stop dead. Mix sides and pauses. At least six each way.</span></li>
+      <li><b>Watch the eyes.</b><span>A catch-up saccade back to your nose at the end of a thrust means that side is weak. Look for nystagmus while the patient looks at you.</span></li>
+      <li><b>Test gaze and skew.</b><span>Press and hold near the left or right screen edge to make the patient look there. For alternate cover, lay two fingers over one eye, then move them to the other.</span></li>
+      <li><b>Commit, then check.</b><span>Tap Done, record your findings, then see the head and eye velocity traces.</span></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="specH">
+    <h2 id="specH">What a good thrust looks like</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Item</th><th>Target</th><th>Why it matters</th></tr></thead>
+        <tbody>
+          <tr><td>Amplitude</td><td class="target">10–20°</td><td>Too-large swings were among the commonest errors in the Ottawa residents.</td></tr>
+          <tr><td>Peak head velocity</td><td class="target">150–300°/s</td><td>Slower thrusts let the intact side and smooth pursuit cover a deficit.</td></tr>
+          <tr><td>Onset</td><td class="target">&gt; 1000°/s²</td><td>Low head acceleration was the commonest novice error in the Bern learning-curve study.</td></tr>
+          <tr><td>End</td><td class="target">Stop dead</td><td>A bounce back blurs the moment the catch-up saccade happens.</td></tr>
+          <tr><td>Side and timing</td><td class="target">Unpredictable</td><td>A patient who can predict the thrust can launch early saccades that mask the deficit.</td></tr>
+          <tr><td>Hands</td><td class="target">Sides of head</td><td>Gripping the jaw and locked-straight arms cost marks for positioning.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="whyH">
+    <h2 id="whyH">Why this exists</h2>
+    <div class="stats">
+      <div class="stat"><b class="mono">2 of 30</b><span>PGY4s independent, examiner 1</span></div>
+      <div class="stat"><b class="mono">6 of 30</b><span>PGY4s independent, examiner 2</span></div>
+      <div class="stat"><b class="mono">r = 0.11</b><span>video reading vs hands-on skill</span></div>
+    </div>
+    <p>In 2023, two expert examiners watched 30 Canadian fourth-year otolaryngology residents do the bedside head impulse test. Most were not independent, and the weakest items were unpredictability, positioning and amplitude. Scores on reading HIT videos did not predict hands-on skill, which is why this trainer makes you produce the thrust rather than watch one.</p>
+  </section>
+
+  <section id="progress" aria-labelledby="progH" hidden></section>
+
+  <footer>
+    <p>Teaching simulation. Reflex gains, saccade latencies and nystagmus are approximations chosen to make each sign recognizable. They do not model any individual patient. Not for diagnosis.</p>
+    <ul>
+      <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11526149/" target="_blank" rel="noopener">Lelli, Rourke, Tse. Competence of senior otolaryngology residents with the bedside HIT. J Otolaryngol Head Neck Surg 2024</a></li>
+      <li><a href="https://www.frontiersin.org/journals/neurology/articles/10.3389/fneur.2020.615651/full" target="_blank" rel="noopener">Korda et al. Quantifying a learning curve for video head impulse test. Front Neurol 2021</a></li>
+      <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4593511/" target="_blank" rel="noopener">Kattah et al. HINTS to diagnose stroke in the acute vestibular syndrome. Stroke 2009</a></li>
+    </ul>
+  </footer>
+</main>
+
+<section id="exam" class="wrap view" hidden>
+  <div id="stage" class="stage">
+    <canvas id="face" aria-label="Simulated patient's eyes"></canvas>
+    <div class="hud">
+      <span class="hud-count" id="hudCount">R 0 · L 0</span>
+      <span class="hud-cue" id="hudCue" aria-live="polite"></span>
+      <div class="hud-actions">
+        <button class="hud-btn" id="rotBtn" hidden>Rotate</button>
+        <button class="hud-btn" id="doneBtn">Done</button>
+      </div>
+    </div>
+    <div class="overlay" id="overlay" hidden><div class="overlay-inner" id="ovInner"></div></div>
+  </div>
+  <div class="demo-bar" id="demoBar">
+    <div class="thrust-row">
+      <button class="btn" data-dir="1"><span aria-hidden="true">←</span> Thrust to patient's right</button>
+      <button class="btn" data-dir="-1">Thrust to patient's left <span aria-hidden="true">→</span></button>
+    </div>
+    <div class="field">
+      <span class="field-label" id="prL">Thrust quality</span>
+      <div class="seg" role="radiogroup" aria-labelledby="prL">
+        <input type="radio" name="preset" id="pr-good" value="good" checked><label for="pr-good">Good: 15° at 200°/s</label>
+        <input type="radio" name="preset" id="pr-slow" value="slow"><label for="pr-slow">Slow: 15° at 80°/s</label>
+        <input type="radio" name="preset" id="pr-big" value="big"><label for="pr-big">Too big: 38° at 230°/s</label>
+      </div>
+    </div>
+    <p class="note">Or flick the face sideways to make your own thrust. Press and hold beside the eyes to give a gaze target. Hold a finger on one eye to cover it, then switch to the other for the alternate cover test. Arrow keys thrust too.</p>
+    <p class="demo-last mono" id="demoLast" aria-live="polite"></p>
+  </div>
+</section>
+
+<main id="results" class="wrap view" hidden></main>
+
+<script>
+'use strict';
+/* ================= helpers ================= */
+const $=s=>document.querySelector(s);
+const D2R=Math.PI/180;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const rand=(a,b)=>a+Math.random()*(b-a);
+const mean=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:NaN;
+const sd=a=>{const m=mean(a);return Math.sqrt(mean(a.map(x=>(x-m)**2)));};
+const median=a=>{if(!a.length)return NaN;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;};
+const f0=x=>Number.isFinite(x)?Math.round(x).toString():'–';
+const f2=x=>Number.isFinite(x)?x.toFixed(2):'–';
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+
+/* Technique targets. Bedside HIT: 10-20°, peak 150-300°/s, abrupt onset, unpredictable. */
+const TGT={vMin:150,vMax:300,aMin:10,aMax:20,aTol:2,accMin:1000,bounceMax:0.4,detect:70,end:15};
+
+/* ================= cases ================= */
+const AVS='56-year-old. Constant spinning since waking 14 hours ago, vomiting, needs help to walk. Hypertension and diabetes.';
+const CASES=[
+ {id:'normal',name:'Normal reflex (BPPV history)',
+  vignette:'41-year-old. Spinning for about 20 seconds when she rolls over in bed or looks up. Well in between.',
+  gain:{R:1,L:1},covert:{R:0,L:0},spontH:0,spontT:0,gazeTc:0,skew:0,
+  key:{rhit:'normal',lhit:'normal',nyst:'none',gaze:'none',skew:'no',call:'normal'},
+  teach:'Eyes stay on your nose both ways, no spontaneous nystagmus, no skew. That fits BPPV: the canal reflex is intact, so the HIT is normal. Brief positional vertigo needs a Dix-Hallpike or supine roll test, not HINTS. HINTS only applies to continuous vertigo with nystagmus (the acute vestibular syndrome).'},
+ {id:'vnR',name:'Right vestibular neuritis',vignette:AVS,
+  gain:{R:0.3,L:0.9},covert:{R:0,L:0},spontH:4,spontT:2.5,gazeTc:0,skew:0,
+  key:{rhit:'saccade',lhit:'normal',nyst:'left',gaze:'same',skew:'no',call:'rightPeripheral'},
+  teach:'Rightward thrusts drag the eyes with the head, then an overt catch-up saccade snaps back to you. Leftward thrusts are clean. Horizontal-torsional nystagmus beats to the left (away from the lesion), grows on left gaze, shrinks on right gaze but never reverses. No skew. Abnormal HIT, unidirectional nystagmus and no skew together make the peripheral pattern.'},
+ {id:'vnL',name:'Left vestibular neuritis',vignette:AVS,
+  gain:{R:0.9,L:0.3},covert:{R:0,L:0},spontH:-4,spontT:-2.5,gazeTc:0,skew:0,
+  key:{rhit:'normal',lhit:'saccade',nyst:'right',gaze:'same',skew:'no',call:'leftPeripheral'},
+  teach:'Leftward thrusts drag the eyes with the head, then an overt catch-up saccade snaps back to you. Rightward thrusts are clean. Horizontal-torsional nystagmus beats to the right (away from the lesion), grows on right gaze, shrinks on left gaze but never reverses. No skew. That is the peripheral pattern.'},
+ {id:'bvl',name:'Bilateral vestibular loss',
+  vignette:'64-year-old, three months after IV gentamicin for sepsis. Vision jumps when he walks. Unsteady in the dark.',
+  gain:{R:0.35,L:0.3},covert:{R:0,L:0},spontH:0,spontT:0,gazeTc:0,skew:0,
+  key:{rhit:'saccade',lhit:'saccade',nyst:'none',gaze:'none',skew:'no',call:'bilateral'},
+  teach:'Catch-up saccades in both directions and no spontaneous nystagmus, because the loss is symmetric. Oscillopsia on walking and imbalance in the dark are the typical complaints. Aminoglycoside toxicity is a classic cause.'},
+ {id:'compL',name:'Compensated left vestibular loss',
+  vignette:'44-year-old. One severe vertigo attack lasting three days, eight months ago. Now brief unsteadiness with quick head turns.',
+  gain:{R:1,L:0.55},covert:{R:0,L:0.75},spontH:0,spontT:0,gazeTc:0,skew:0,
+  key:{rhit:'normal',lhit:'saccade',nyst:'none',gaze:'none',skew:'no',call:'leftPeripheral'},
+  teach:'Months after a left-sided loss, most catch-up saccades turn covert: they fire during the thrust, so the eyes look nearly on target when the head stops. Only some overt saccades are left to see. A clean-looking bedside HIT does not exclude a chronic deficit; the video HIT shows covert saccades.'},
+ {id:'pica',name:'Cerebellar stroke (right PICA)',vignette:AVS,
+  gain:{R:0.97,L:0.97},covert:{R:0,L:0},spontH:0,spontT:0,gazeTc:3.5,skew:3,
+  key:{rhit:'normal',lhit:'normal',nyst:'none',gaze:'changing',skew:'yes',call:'central'},
+  teach:'Both impulse tests are normal despite continuous vertigo. In this setting that is the dangerous finding. Nystagmus appears on side gaze and reverses with gaze direction, and alternate cover shows a vertical refixation (skew). Any one of these makes it central: INFARCT, for Impulse Normal, Fast-phase Alternating, Refixation on Cover Test. Early MRI can miss posterior circulation strokes in the first 24 to 48 hours.'},
+ {id:'aica',name:'Right AICA stroke',vignette:AVS+' Since onset his right ear feels blocked and sounds are muffled.',
+  gain:{R:0.4,L:0.95},covert:{R:0,L:0},spontH:3,spontT:1.5,gazeTc:0,skew:-2.5,
+  key:{rhit:'saccade',lhit:'normal',nyst:'left',gaze:'same',skew:'yes',call:'central'},
+  teach:'The right HIT is abnormal and the nystagmus is unidirectional, so two HINTS components look peripheral. The skew and the new right-sided hearing loss give it away. AICA supplies the inner ear, so a stroke here can produce a peripheral-looking HIT. HINTS plus: new unilateral hearing loss in acute vertigo is central until proven otherwise.'}
+];
+const caseById=id=>CASES.find(c=>c.id===id);
+
+const QUIZ=[
+ {id:'rhit',label:"Thrusts to the patient's right",opts:[['normal','Eyes stayed on me'],['saccade','Catch-up saccade']]},
+ {id:'lhit',label:"Thrusts to the patient's left",opts:[['normal','Eyes stayed on me'],['saccade','Catch-up saccade']]},
+ {id:'nyst',label:'Nystagmus while the patient looks at you',opts:[['none','None'],['left',"Fast phase to patient's left"],['right',"Fast phase to patient's right"]]},
+ {id:'gaze',label:'Nystagmus on side gaze',opts:[['none','None'],['same','Same direction both sides'],['changing','Changes direction'],['untested',"Didn't test"]]},
+ {id:'skew',label:'Alternate cover test',opts:[['no','No vertical refixation'],['yes','Vertical refixation (skew)'],['untested',"Didn't test"]]},
+ {id:'call',label:'Your conclusion',opts:[['normal','Normal'],['rightPeripheral','Right peripheral'],['leftPeripheral','Left peripheral'],['bilateral','Bilateral peripheral'],['central','Central: image now']]}
+];
+const optLabel=(qid,v)=>{const q=QUIZ.find(x=>x.id===qid);const o=q&&q.opts.find(x=>x[0]===v);return o?o[1]:'No answer';};
+
+/* ================= eye simulation ================= */
+class Patient{
+  constructor(c){this.setCase(c);}
+  setCase(c){this.c=c;this.reset();}
+  reset(){
+    Object.assign(this,{H:0,E:0,Vc:0,T:0,errF:0,sac:null,lastSacEnd:-1e9,pend:null,fix:'R',cov:{L:false,R:false},
+      tgtX:0,tgtY:0,imp:null,vDrift:0,accVor:0,blinkT0:null,nextBlink:performance.now()+2500,w:0});
+    this.Vc=-this.c.skew; // right eye fixating at start
+  }
+  /* VOR gain: full at low velocity, falls to the lesioned-side gain by 150°/s (Ewald's second law) */
+  gainAt(w){const gd=this.c.gain[w>=0?'R':'L'];const f=clamp((Math.abs(w)-30)/120,0,1);return gd+(1-gd)*(1-f);}
+  startImpulse(t0,dir){
+    const side=dir>0?'R':'L';const covert=Math.random()<(this.c.covert[side]||0);
+    this.imp={t0,dir,side,covert,latency:covert?rand(85,120):rand(190,260),sacs:[]};
+    return this.imp;
+  }
+  setCover(L,R){this.cov={L,R};if(L&&!R)this.fix='R';else if(R&&!L)this.fix='L';}
+  step(now,dt,w){
+    const c=this.c;this.w=w;
+    this.H=clamp(this.H+w*dt-this.H*dt/20,-80,80);
+    const aw=Math.abs(w);
+    const vVOR=-this.gainAt(w)*w;
+    const err=this.tgtX-(this.H+this.E);
+    this.errF+=(err-this.errF)*Math.min(1,dt/0.08);
+    const vPur=aw>8?clamp(5*this.errF,-15,15):0;
+    let vD=0;
+    if(c.spontH){const fs=-Math.sign(c.spontH);vD+=c.spontH*clamp(1+(this.E*fs)/30,0.35,1.8);} // Alexander's law
+    if(c.gazeTc)vD+=-this.E/c.gazeTc; // leaky integrator: centripetal drift
+    this.vDrift=vD;
+    this.E+=(vVOR+vPur+vD)*dt;
+    this.accVor+=(vVOR+vPur)*dt;
+    if(c.spontT)this.T+=c.spontT*dt;
+    if(this.sac){
+      const s=this.sac;const tau=clamp((now-s.t0)/(s.dur*1000),0,1);const p=(1-Math.cos(Math.PI*tau))/2;const dp=p-s.p;s.p=p;
+      this.E+=s.aH*dp;this.Vc+=s.aV*dp;this.T+=s.aT*dp;
+      if(tau>=1){this.sac=null;this.lastSacEnd=now;}
+    }
+    this.E=clamp(this.E,-42,42);this.Vc=clamp(this.Vc,-30,30);this.T=clamp(this.T,-8,8);
+    this.trigger(now);
+    const inImp=this.imp&&now-this.imp.t0<900;
+    if(this.blinkT0==null&&now>this.nextBlink&&!this.sac&&aw<20&&!inImp){this.blinkT0=now;this.nextBlink=now+rand(2800,7000);}
+    if(this.blinkT0!=null&&now-this.blinkT0>300)this.blinkT0=null;
+  }
+  lid(now){if(this.blinkT0==null)return 0;const t=now-this.blinkT0;if(t<80)return t/80;if(t<120)return 1;if(t<300)return 1-(t-120)/180;return 0;}
+  trigger(now){
+    if(this.sac||now-this.lastSacEnd<90)return;
+    const c=this.c;
+    const errH=this.tgtX-(this.H+this.E);
+    const errV=this.tgtY-(this.Vc+(this.fix==='R'?c.skew:0));
+    const inImp=this.imp&&now-this.imp.t0<500;
+    if(!inImp&&Math.abs(this.w)>40){this.pend=null;return;} // no fixation saccades while the head is being moved fast
+    const drifting=Math.abs(this.vDrift)>0.8;
+    const thr=inImp?1.8:drifting?1.2:0.8;
+    if(Math.abs(errH)<=thr&&Math.abs(errV)<=0.6){this.pend=null;return;}
+    if(this.pend==null)this.pend=now;
+    const ready=inImp?(now-this.imp.t0>=this.imp.latency):(now-this.pend>=(drifting?110:180));
+    if(!ready)return;
+    let aH=errH*0.96,aV=errV*0.96,aT=0;
+    if(!inImp&&drifting&&Math.abs(errH)>thr){ // nystagmus fast phase overshoots in the fast-phase direction
+      aH+=-Math.sign(this.vDrift)*0.8;
+      if(c.spontT)aT=-this.T-Math.sign(c.spontT)*0.6;
+    }
+    const amp=Math.hypot(aH,aV);
+    this.sac={t0:now,dur:(2.2*amp+21)/1000,aH,aV,aT,p:0}; // main sequence duration
+    this.pend=null;
+    if(inImp)this.imp.sacs.push({t:now-this.imp.t0,amp:-aH*this.imp.dir});
+  }
+}
+
+/* ================= impulse detector ================= */
+class Detector{
+  constructor(P,cb){this.P=P;this.cb=cb||{};this.buf=[];this.state='idle';this.cur=null;this.postUntil=0;}
+  push(t,w,eye,vor){
+    const b=this.buf;b.push({t,w,eye,vor});while(b.length&&t-b[0].t>1600)b.shift();
+    const n=b.length;
+    if(this.state==='idle'){
+      if(Math.abs(w)>=TGT.detect){
+        const dir=Math.sign(w);let i=n-1;
+        while(i>0&&b[i-1].w*dir>8&&t-b[i-1].t<350)i--;
+        const cur={dir,onset:b[i].t,peak:0,amp:0,acc:0,bounce:0,end:null};
+        for(let k=i;k<n;k++)this.accum(cur,k);
+        this.cur=cur;this.state='active';
+        cur.imp=this.P.startImpulse(cur.onset,dir);
+        this.cb.start&&this.cb.start(cur);
+      }
+    }else if(this.state==='active'){
+      const cur=this.cur;this.accum(cur,n-1);
+      if(w*cur.dir<TGT.end){cur.end=t;this.state='post';this.postUntil=t+300;}
+      else if(t-cur.onset>900){this.state='idle';this.cur=null;}
+    }else if(this.state==='post'){
+      const cur=this.cur;cur.bounce=Math.max(cur.bounce,-w*cur.dir);
+      if(t>=this.postUntil){this.finish();this.state='idle';}
+    }
+  }
+  accum(cur,k){
+    const b=this.buf,s=b[k],d=cur.dir,v=s.w*d;
+    cur.peak=Math.max(cur.peak,v);
+    if(k>0&&b[k-1].t>=cur.onset){const p=b[k-1];cur.amp+=(v+p.w*d)/2*(s.t-p.t)/1000;}
+    if(k>1){const q=b[k-2];const dt=(s.t-q.t)/1000;if(dt>0)cur.acc=Math.max(cur.acc,(v-q.w*d)/dt);}
+  }
+  finish(){
+    const cur=this.cur,b=this.buf,d=cur.dir;
+    cur.trace=b.filter(s=>s.t>=cur.onset-50&&s.t<=cur.onset+450).map(s=>({t:s.t-cur.onset,h:s.w*d,e:-s.eye*d}));
+    let hs=0,es=0;
+    for(let k=1;k<b.length;k++){const s=b[k];if(s.t<cur.onset||s.t>cur.end)continue;const dt=(s.t-b[k-1].t)/1000;hs+=s.w*d*dt;es+=-s.vor*d*dt;}
+    cur.gain=hs>1?es/hs:NaN;cur.side=d>0?'R':'L';cur.dur=cur.end-cur.onset;
+    cur.sacs=cur.imp?cur.imp.sacs:[];
+    this.cb.done&&this.cb.done(cur);this.cur=null;
+  }
+}
+
+/* ================= rig: patient + detector + demo motor plan ================= */
+class Rig{
+  constructor(c,cb){this.P=new Patient(c);this.D=new Detector(this.P,cb);this.lastT=null;this.lastW=0;this.plan=[];this.planEnd=0;this.simT=null;}
+  ingest(t,w){
+    const P=this.P;
+    if(this.lastT==null){this.lastT=t;this.lastW=w;return;}
+    const span=t-this.lastT;if(span<=0)return;
+    if(span>120){this.lastT=t;this.lastW=w;return;}
+    const t0=this.lastT,w0=this.lastW,n=Math.max(1,Math.ceil(span/4)),E0=P.E;P.accVor=0;
+    for(let i=1;i<=n;i++){const f=i/n;P.step(t0+span*f,span/n/1000,w0+(w-w0)*f);}
+    const dt=span/1000;
+    this.D.push(t,w,(P.E-E0)/dt,P.accVor/dt);
+    this.lastT=t;this.lastW=w;
+  }
+  queue(sign,peak,amp,now){
+    const start=Math.max(now+40,this.planEnd);
+    const sig=amp/(peak*Math.sqrt(2*Math.PI))*1000,c=start+3*sig;
+    this.plan.push({a:start,b:start+6*sig,v:t=>sign*peak*Math.exp(-((t-c)**2)/(2*sig*sig))});
+    const r0=start+6*sig+450,rd=1100;
+    this.plan.push({a:r0,b:r0+rd,v:t=>-sign*amp*Math.PI/(2*rd/1000)*Math.sin(Math.PI*(t-r0)/rd)});
+    this.planEnd=r0+rd+200;
+  }
+  busy(now){return now<this.planEnd;}
+  runDemo(now){
+    if(this.simT==null||now-this.simT>250)this.simT=now-4;
+    while(this.simT+4<=now){
+      this.simT+=4;let w=0;
+      for(const m of this.plan)if(this.simT>=m.a&&this.simT<=m.b)w+=m.v(this.simT);
+      this.ingest(this.simT,w);
+    }
+    this.plan=this.plan.filter(m=>m.b>=now-50);
+  }
+}
+
+/* ================= face drawing ================= */
+const SKIN={hi:'#dcae88',base:'#c48f66',lo:'#97653f',lid:'#c18a61',brow:'#2a1a10'};
+function drawFace(cv,P,o){
+  const dpr=Math.min(window.devicePixelRatio||1,3);
+  const cw=cv.clientWidth,ch=cv.clientHeight;if(!cw||!ch)return null;
+  const bw=Math.round(cw*dpr),bh=Math.round(ch*dpr);
+  if(cv.width!==bw||cv.height!==bh){cv.width=bw;cv.height=bh;}
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle='#0b0f12';ctx.fillRect(0,0,cw,ch);
+  const rot=o.rot||0,sw=rot%180!==0,W=sw?ch:cw,H=sw?cw:ch;
+  ctx.save();ctx.translate(cw/2,ch/2);ctx.rotate(rot*D2R);ctx.translate(-W/2,-H/2);
+  const ew=Math.min(W*0.28,H*0.56),eh=ew*0.42,sep=Math.min(W*0.44,ew*1.75),cy=H*0.54;
+  const mag=o.mag||1,k=ew*0.0075*mag;
+  const hs=o.demo?-Math.sin(P.H*D2R)*W*0.2:0,cosH=o.demo?Math.cos(P.H*D2R):1;
+  let g;
+  if(o.demo){
+    const fx=W/2+hs*0.55;
+    g=ctx.createRadialGradient(fx,cy-eh,ew*0.2,fx,cy,W*0.55);g.addColorStop(0,SKIN.hi);g.addColorStop(0.72,SKIN.base);g.addColorStop(1,SKIN.lo);
+    ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(fx,cy+H*0.3,W*0.45*Math.max(0.9,cosH),H*0.98,0,0,Math.PI*2);ctx.fill();
+  }else{
+    g=ctx.createRadialGradient(W/2,cy-eh*1.2,ew*0.2,W/2,cy,W*0.72);g.addColorStop(0,SKIN.hi);g.addColorStop(0.7,SKIN.base);g.addColorStop(1,SKIN.lo);
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }
+  const nx=W/2+hs*1.5;
+  g=ctx.createLinearGradient(nx-ew*0.35,0,nx+ew*0.35,0);
+  g.addColorStop(0,'rgba(90,50,30,0)');g.addColorStop(0.32,'rgba(90,50,30,.2)');g.addColorStop(0.5,'rgba(255,226,192,.2)');g.addColorStop(0.68,'rgba(90,50,30,.2)');g.addColorStop(1,'rgba(90,50,30,0)');
+  ctx.fillStyle=g;
+  const top=cy-eh*1.3,fade=eh*1.1;
+  for(let i=0;i<10;i++){ctx.globalAlpha=(i+1)/10;ctx.fillRect(nx-ew*0.35,top+fade*i/10,ew*0.7,fade/10+0.5);}
+  ctx.globalAlpha=1;ctx.fillRect(nx-ew*0.35,top+fade,ew*0.7,H);
+  const xs={R:W/2+hs-sep/2*cosH,L:W/2+hs+sep/2*cosH};
+  const lidC=P.lid(o.now);
+  for(const side of ['R','L']){
+    const V=P.Vc+(side==='R'?P.c.skew:0);
+    const ri=ew*0.205,lim=ew/2-ri*0.85;
+    const dx=clamp(-P.E*k,-lim,lim),dy=clamp(-V*k,-eh*0.5,eh*0.5);
+    drawBrow(ctx,xs[side],cy,ew,eh,side,dy);
+    drawEye(ctx,xs[side],cy,ew,eh,side,dx,dy,-P.T*D2R*mag*1.5,lidC);
+    if(P.cov[side])drawCover(ctx,xs[side],cy,ew,eh);
+  }
+  if(o.target){
+    const t=o.target;ctx.fillStyle='rgba(242,182,50,.35)';ctx.beginPath();ctx.arc(t.x,t.y,16,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f2b632';ctx.beginPath();ctx.arc(t.x,t.y,6,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+  return {W,H,cw,ch,rot,xs,cy,ew,eh};
+}
+function eyePt(x,y,ew,eh,f,a,b){return [x+f*a*ew,y+b*eh];}
+function drawBrow(ctx,x,y,ew,eh,side,dy){
+  const f=side==='R'?1:-1,lift=Math.min(0,dy)*0.35,p=(a,b)=>eyePt(x,y+lift,ew,eh,f,a,b);
+  ctx.strokeStyle=SKIN.brow;ctx.lineCap='round';ctx.lineWidth=eh*0.2;
+  ctx.beginPath();ctx.moveTo(...p(-0.56,-1.02));ctx.quadraticCurveTo(...p(-0.08,-1.62),...p(0.5,-1.08));ctx.stroke();
+}
+function drawEye(ctx,x,y,ew,eh,side,dx,dy,rot,blink){
+  const f=side==='R'?1:-1,p=(a,b)=>eyePt(x,y,ew,eh,f,a,b);
+  const outline=()=>{ctx.beginPath();ctx.moveTo(...p(-0.5,0.02));ctx.bezierCurveTo(...p(-0.26,-0.68),...p(0.24,-0.72),...p(0.5,0.1));ctx.bezierCurveTo(...p(0.22,0.62),...p(-0.24,0.6),...p(-0.5,0.02));ctx.closePath();};
+  ctx.save();outline();ctx.clip();
+  let g=ctx.createRadialGradient(x,y,ew*0.05,x,y,ew*0.55);g.addColorStop(0,'#fbf8f3');g.addColorStop(0.65,'#efe5da');g.addColorStop(1,'#cfa995');
+  ctx.fillStyle=g;ctx.fillRect(x-ew,y-eh*1.5,ew*2,eh*3);
+  const ri=ew*0.205,ix=x+dx,iy=y+dy;
+  g=ctx.createRadialGradient(ix,iy,ri*0.3,ix,iy,ri);g.addColorStop(0,'#5d3c20');g.addColorStop(0.55,'#7d5332');g.addColorStop(0.9,'#4b2f19');g.addColorStop(1,'#21160c');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(ix,iy,ri,0,Math.PI*2);ctx.fill();
+  ctx.save();ctx.translate(ix,iy);ctx.rotate(rot);
+  ctx.strokeStyle='rgba(205,160,108,.33)';ctx.lineWidth=Math.max(1,ri*0.03);
+  for(let i=0;i<36;i++){const a=i/36*Math.PI*2+(i%3)*0.05,r2=ri*(0.8+0.06*(i*7%3));ctx.beginPath();ctx.moveTo(Math.cos(a)*ri*0.42,Math.sin(a)*ri*0.42);ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2);ctx.stroke();}
+  ctx.fillStyle='rgba(238,204,146,.85)';ctx.beginPath();ctx.ellipse(0,-ri*0.66,ri*0.13,ri*0.075,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(18,9,3,.55)';
+  for(const a of [2.25,3.95]){ctx.beginPath();ctx.ellipse(Math.cos(a)*ri*0.62,Math.sin(a)*ri*0.62,ri*0.1,ri*0.06,a,0,Math.PI*2);ctx.fill();}
+  ctx.restore();
+  ctx.fillStyle='#0a0705';ctx.beginPath();ctx.arc(ix,iy,ri*0.37,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(14,8,4,.8)';ctx.lineWidth=ri*0.08;ctx.beginPath();ctx.arc(ix,iy,ri*0.96,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.85)';ctx.beginPath();ctx.arc(ix-ri*0.32,iy-ri*0.36,ri*0.11,0,Math.PI*2);ctx.fill();
+  const vl=dy*0.75,upPeak=y-eh*0.43+vl,closed=y+eh*0.5,peak=upPeak+(closed-upPeak)*blink;
+  g=ctx.createLinearGradient(0,peak,0,peak+eh*0.32);g.addColorStop(0,'rgba(70,35,20,.38)');g.addColorStop(1,'rgba(70,35,20,0)');
+  ctx.fillStyle=g;ctx.fillRect(x-ew,peak,ew*2,eh*0.4);
+  const A=p(-0.5,0.02),B=p(0.5,0.1),mid=(A[1]+B[1])/2;
+  ctx.fillStyle=SKIN.lid;ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.quadraticCurveTo(x,2*peak-mid,B[0],B[1]);ctx.lineTo(B[0],y-eh*2);ctx.lineTo(A[0],y-eh*2);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#1a100a';ctx.lineWidth=ew*0.028;ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.quadraticCurveTo(x,2*peak-mid,B[0],B[1]);ctx.stroke();
+  const low=y+eh*0.5+vl*0.35;
+  ctx.fillStyle=SKIN.base;ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.quadraticCurveTo(x,2*low-mid,B[0],B[1]);ctx.lineTo(B[0],y+eh*2);ctx.lineTo(A[0],y+eh*2);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(255,226,214,.5)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.quadraticCurveTo(x,2*low-mid,B[0],B[1]);ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle='rgba(80,45,28,.45)';ctx.lineWidth=Math.max(1,ew*0.014);ctx.beginPath();ctx.moveTo(...p(-0.42,-0.3));ctx.quadraticCurveTo(...p(0,-1.15),...p(0.44,-0.2));ctx.stroke();
+}
+function drawCover(ctx,x,y,ew,eh){
+  const w=ew*1.3,h=eh*2.1,r=18,x0=x-w/2,y0=y-h*0.52;
+  ctx.fillStyle='rgba(20,24,28,.94)';ctx.beginPath();
+  ctx.moveTo(x0+r,y0);ctx.lineTo(x0+w-r,y0);ctx.quadraticCurveTo(x0+w,y0,x0+w,y0+r);ctx.lineTo(x0+w,y0+h-r);ctx.quadraticCurveTo(x0+w,y0+h,x0+w-r,y0+h);
+  ctx.lineTo(x0+r,y0+h);ctx.quadraticCurveTo(x0,y0+h,x0,y0+h-r);ctx.lineTo(x0,y0+r);ctx.quadraticCurveTo(x0,y0,x0+r,y0);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.55)';ctx.font='600 12px "IBM Plex Mono",monospace';ctx.textAlign='center';ctx.fillText('covered',x,y+4);
+}
+
+/* ================= hero loop ================= */
+const hero={rig:null,cv:$('#heroCanvas'),on:false,raf:0};
+function heroCaption(dir){
+  const cap=$('#heroCap');
+  cap.innerHTML=dir>0
+    ?'<span class="side-tag" data-side="R">Right</span><span>Thrust to the patient\'s right: the eyes slip with the head, then a catch-up saccade snaps back to you. This is right vestibular neuritis.</span>'
+    :'<span class="side-tag" data-side="L">Left</span><span>Thrust to the patient\'s left: the eyes stay locked on you.</span>';
+}
+function heroStart(){
+  if(hero.on)return;hero.on=true;
+  hero.rig=new Rig(caseById('vnR'),{start:c=>heroCaption(c.dir)});
+  let pairNext=0;
+  const tick=now=>{
+    if(!hero.on)return;
+    if(!hero.rig.busy(now)&&now>pairNext){hero.rig.queue(-1,210,15,now+500);hero.rig.queue(1,210,15,now);pairNext=hero.rig.planEnd+600;}
+    hero.rig.runDemo(now);
+    drawFace(hero.cv,hero.rig.P,{mag:2,demo:true,now});
+    hero.raf=requestAnimationFrame(tick);
+  };
+  hero.raf=requestAnimationFrame(tick);
+}
+function heroStop(){hero.on=false;cancelAnimationFrame(hero.raf);}
+
+/* ================= home setup ================= */
+let sensorState='checking';
+function buildCaseSelect(){
+  const sel=$('#caseSel');
+  sel.innerHTML='<option value="mystery">Mystery case (random)</option><optgroup label="Choose a case (diagnosis visible)">'+
+    CASES.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')+'</optgroup>';
+}
+function setSensorState(s){
+  sensorState=s;
+  const note=$('#sensorNote'),sens=$('#mode-sensor');
+  note.classList.remove('warn');
+  if(s==='ok'){note.textContent='Motion sensor found. Partner practice is ready.';sens.disabled=false;}
+  else if(s==='ask'){note.textContent='This phone asks for motion access when you tap Start.';sens.disabled=false;}
+  else{
+    note.textContent='No motion sensor can be read here, so the demo runs on this screen. For partner practice, open the hosted copy of this page on a phone.';
+    note.classList.add('warn');sens.disabled=true;$('#mode-demo').checked=true;
+  }
+}
+function probeSensor(){
+  if(typeof DeviceMotionEvent==='undefined'){setSensorState('none');return;}
+  if(typeof DeviceMotionEvent.requestPermission==='function'){setSensorState('ask');return;}
+  let got=false;
+  const h=e=>{const r=e.rotationRate;if(r&&(r.alpha!=null||r.beta!=null||r.gamma!=null))got=true;};
+  window.addEventListener('devicemotion',h);
+  setTimeout(()=>{window.removeEventListener('devicemotion',h);setSensorState(got?'ok':'none');},1300);
+}
+document.querySelectorAll('input[name="mode"]').forEach(r=>r.addEventListener('change',()=>{
+  const v=document.querySelector('input[name="mode"]:checked').value;
+  (v==='sensor'?$('#sc-1'):$('#sc-2')).checked=true;
+}));
+function renderProgress(){
+  const log=store.get('hintsTrainer.log.v1',[]);
+  const el=$('#progress');if(!log.length){el.hidden=true;return;}
+  const sensorImps=log.filter(e=>e.mode==='sensor').reduce((s,e)=>s+e.n,0);
+  const pct=Math.min(100,Math.round(sensorImps/160*100));
+  const rows=log.slice(-6).reverse().map(e=>`<tr><td>${new Date(e.d).toLocaleDateString(undefined,{day:'numeric',month:'short'})}</td><td>${e.mode==='sensor'?'Partner':'Demo'}</td><td>${caseById(e.caseId)?.name||e.caseId}</td><td class="num">${e.n}</td><td class="num">${e.n?Math.round(100*e.valid/e.n)+'%':'–'}</td><td>${e.correct==null?'–':e.correct?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</td></tr>`).join('');
+  el.hidden=false;
+  el.innerHTML=`<h2 id="progH">Your practice</h2>
+  <p><b class="mono">${sensorImps}</b> thrusts on a partner so far. Novices in the Bern study reached 80% valid impulses after about 160 thrusts with expert feedback.</p>
+  <div class="bar" role="img" aria-label="${sensorImps} of 160 thrusts"><i style="width:${pct}%"></i></div>
+  <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Mode</th><th>Patient</th><th class="num">Thrusts</th><th class="num">Valid</th><th>Call</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p class="small">Stored only in this browser.</p>`;
+}
+
+/* ================= audio ================= */
+let AC=null;
+function initAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume&&AC.resume();}catch(e){AC=null;}}
+function tone(fq,ms,type,gain){
+  if(!AC)return;try{
+    const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;
+    o.type=type||'sine';o.frequency.value=fq;g.gain.setValueAtTime(gain||0.16,t);g.gain.exponentialRampToValueAtTime(0.0001,t+ms/1000);
+    o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+ms/1000+0.03);
+  }catch(e){}
+}
+
+/* ================= session ================= */
+let S=null;
+const cv=$('#face'),stage=$('#stage');
+function show(id){
+  ['home','exam','results'].forEach(v=>{$('#'+v).hidden=v!==id;});
+  if(id==='home'&&!reduceMotion)heroStart();else heroStop();
+  window.scrollTo(0,0);
+}
+function judge(imp){
+  const f=[];
+  if(imp.peak>TGT.vMax)f.push(['fast','Too forceful']);
+  if(imp.amp>TGT.aMax+TGT.aTol)f.push(['big','Too big']);
+  if(imp.peak<TGT.vMin)f.push(['slow',imp.peak<100?'Too slow':'A bit slow']);
+  if(imp.amp<TGT.aMin-TGT.aTol)f.push(['small','Too small']);
+  if(imp.acc<TGT.accMin)f.push(['acc','Slow start']);
+  if(imp.bounce>imp.peak*TGT.bounceMax)f.push(['bounce','Bounced back']);
+  imp.flags=f;imp.valid=!f.length;
+}
+const CUE={fast:'Gentler',big:'Smaller',slow:'Faster',small:'Bigger',acc:'Snap it',bounce:'Stop dead'};
+let cueTimer=0;
+function showCue(text,kind){
+  const el=$('#hudCue');el.textContent=text;el.className='hud-cue on '+kind;
+  clearTimeout(cueTimer);cueTimer=setTimeout(()=>{el.className='hud-cue';},1300);
+}
+function updateHud(){
+  const r=S.imps.filter(i=>i.side==='R').length,l=S.imps.length-r;
+  $('#hudCount').textContent=`R ${r} · L ${l}`;
+}
+function onImpulseDone(imp){
+  if(!S||!S.active)return;
+  judge(imp);S.imps.push(imp);updateHud();
+  if(S.mode==='demo'){
+    $('#demoLast').textContent=`#${S.imps.length} ${imp.side==='R'?'right':'left'} · peak ${f0(imp.peak)}°/s · ${f0(imp.amp)}° · onset ${f0(imp.acc)}°/s²`+(imp.valid?' · valid':' · '+imp.flags.map(x=>x[1].toLowerCase()).join(', '));
+  }
+  if(S.coach){
+    if(imp.valid){showCue('Good','good');tone(880,90);setTimeout(()=>tone(1320,110),90);}
+    else{showCue(CUE[imp.flags[0][0]],'warn');tone(220,180,'square',0.08);}
+  }
+}
+function newSession(opts){
+  const id=opts.caseId==='mystery'?CASES[Math.floor(Math.random()*CASES.length)].id:opts.caseId;
+  const c=caseById(id);
+  S={active:true,mode:opts.mode,caseId:id,case:c,picked:opts.caseId,coach:opts.coach,mag:opts.mag,imps:[],
+    rig:new Rig(c,{done:onImpulseDone}),gazeR:0,gazeL:0,coverSwitches:0,lastCover:null,rot:0,targetPt:null,
+    calib:{phase:'idle'},bias:[0,0,0],u:[-1,0,0],calibrated:false,running:false,lastMotion:0,lastFrame:0,wake:null};
+  return S;
+}
+async function startFromHome(){
+  const caseId=$('#caseSel').value;
+  let mode=document.querySelector('input[name="mode"]:checked').value;
+  const coach=document.querySelector('input[name="fb"]:checked').value==='coach';
+  const mag=+document.querySelector('input[name="scale"]:checked').value;
+  initAudio();
+  let notice='';
+  if(mode==='sensor'&&typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){
+    try{const r=await DeviceMotionEvent.requestPermission();if(r!=='granted')throw new Error('denied');}
+    catch(e){mode='demo';notice='Motion access was refused, so the demo is running on this screen instead.';}
+  }
+  beginSession({caseId,mode,coach,mag},notice);
+}
+function beginSession(opts,notice){
+  newSession(opts);
+  show('exam');
+  $('#hudCount').textContent='R 0 · L 0';$('#demoLast').textContent='';
+  const sensor=S.mode==='sensor';
+  $('#demoBar').hidden=sensor;
+  stage.classList.toggle('full',sensor);document.body.classList.toggle('locked',sensor);
+  $('#rotBtn').hidden=!sensor;
+  if(sensor){
+    try{const el=document.documentElement;el.requestFullscreen&&el.requestFullscreen().then(()=>{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{});}).catch(()=>{});}catch(e){}
+    try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(w=>{if(S)S.wake=w;}).catch(()=>{});}catch(e){}
+    S.rot=innerHeight>innerWidth?90:0;
+    window.addEventListener('devicemotion',onMotion);
+    overlayIntroSensor(notice);
+  }else{
+    overlayIntroDemo(notice);
+  }
+  requestAnimationFrame(loop);
+}
+function overlay(html){const o=$('#overlay');if(html==null){o.hidden=true;return;}$('#ovInner').innerHTML=html;o.hidden=false;}
+function overlayIntroDemo(notice){
+  overlay(`${notice?`<p>${notice}</p>`:''}<p class="eyebrow">Your patient</p><p class="vig">${S.case.vignette}</p>
+  <p>Thrust with the buttons below or flick the face. Check gaze and do the alternate cover test, then tap Done.</p>
+  <button class="btn primary" id="ovBegin">Begin</button>`);
+  $('#ovBegin').onclick=()=>{overlay(null);S.running=true;};
+}
+function overlayIntroSensor(notice){
+  overlay(`${notice?`<p>${notice}</p>`:''}<p class="eyebrow">Your patient</p><p class="vig">${S.case.vignette}</p>
+  <p>Tap Calibrate, then strap the phone across your partner's eyes during the countdown.</p>
+  <div class="actions" style="justify-content:center"><button class="btn primary" id="ovCal">Calibrate</button><button class="btn" id="ovSkip">Skip calibration</button></div>`);
+  $('#ovCal').onclick=startCalibration;
+  $('#ovSkip').onclick=()=>{
+    const ang=(screen.orientation&&screen.orientation.angle)||window.orientation||90;
+    S.u=(ang===270||ang===-90)?[1,0,0]:[-1,0,0];finishCalibration(false);
+  };
+}
+function startCalibration(){
+  const C=S.calib;C.phase='count';let n=5;
+  const step=()=>{
+    if(!S||S.calib!==C||C.phase!=='count')return;
+    if(n===0){C.phase='still';C.t0=performance.now();C.sum=[0,0,0];C.n=0;overlay('<p class="big">Hold the head still</p>');return;}
+    overlay(`<p class="eyebrow">Mount the phone now</p><p class="big mono">${n}</p>`);n--;setTimeout(step,1000);
+  };
+  step();
+  setTimeout(()=>{
+    if(!(S&&S.mode==='sensor'&&S.calib===C&&!S.lastMotion))return;
+    overlay(`<p class="big">No motion data</p><p>This page can't read the phone's gyroscope here. Open the hosted copy over HTTPS, or switch to the on-screen demo.</p><button class="btn primary" id="ovDemo">Switch to demo</button>`);
+    $('#ovDemo').onclick=switchToDemo;
+  },6800);
+}
+function switchToDemo(){
+  const o={caseId:S.picked,mode:'demo',coach:S.coach,mag:2};endSession(false);beginSession(o,'');
+}
+function calibStep(t,v){
+  const C=S.calib;
+  if(C.phase==='still'){
+    if(Math.hypot(v[0],v[1],v[2])>10){C.t0=t;C.sum=[0,0,0];C.n=0;return;}
+    C.sum=C.sum.map((s,i)=>s+v[i]);C.n++;
+    if(t-C.t0>1500&&C.n>20){
+      S.bias=C.sum.map(s=>s/C.n);C.phase='turn';C.S=[0,0,0];C.lastT=t;
+      overlay(`<p class="big">Turn the head slowly to the patient's RIGHT</p><p>That is your left. About 30°, then back to face you.</p>`);
+    }
+  }else if(C.phase==='turn'){
+    const dt=clamp((t-C.lastT)/1000,0,0.05);C.lastT=t;
+    const vb=v.map((x,i)=>x-S.bias[i]);
+    if(Math.hypot(...vb)>4)C.S=C.S.map((s,i)=>s+vb[i]*dt);
+    const m=Math.hypot(...C.S);
+    if(m>=20){S.u=C.S.map(s=>s/m);C.phase='back';C.A=m;C.tBack=t;overlay('<p class="big">Good. Bring the head back to face you</p>');}
+  }else if(C.phase==='back'){
+    const dt=clamp((t-C.lastT)/1000,0,0.05);C.lastT=t;
+    const w=(v[0]-S.bias[0])*S.u[0]+(v[1]-S.bias[1])*S.u[1]+(v[2]-S.bias[2])*S.u[2];
+    C.A+=w*dt;
+    if((C.A<5&&Math.abs(w)<15)||t-C.tBack>5000)finishCalibration(true);
+  }
+}
+function finishCalibration(done){
+  S.calib.phase='done';S.calibrated=done;
+  S.rig.P.reset();S.rig.lastT=null;S.running=true;
+  overlay(null);showCue(done?'Ready':'Uncalibrated','warn');
+}
+function onMotion(e){
+  if(!S||S.mode!=='sensor')return;
+  const r=e.rotationRate;if(!r||(r.alpha==null&&r.beta==null&&r.gamma==null))return;
+  const t=performance.now();S.lastMotion=t;
+  const v=[r.beta||0,r.gamma||0,r.alpha||0];
+  if(S.calib.phase==='still'||S.calib.phase==='turn'||S.calib.phase==='back'){calibStep(t,v);return;}
+  if(!S.running)return;
+  const w=(v[0]-S.bias[0])*S.u[0]+(v[1]-S.bias[1])*S.u[1]+(v[2]-S.bias[2])*S.u[2];
+  S.rig.ingest(t,w);
+}
+const ptrs=new Map();
+function toFace(e){
+  const g=S&&S.geom;const r=cv.getBoundingClientRect();let x=e.clientX-r.left,y=e.clientY-r.top;
+  if(!g)return {x,y};
+  const th=-g.rot*D2R,cx=x-g.cw/2,cy=y-g.ch/2;
+  return {x:cx*Math.cos(th)-cy*Math.sin(th)+g.W/2,y:cx*Math.sin(th)+cy*Math.cos(th)+g.H/2};
+}
+function hitEye(f){
+  const g=S&&S.geom;if(!g)return null;
+  for(const s of ['R','L'])if(Math.abs(f.x-g.xs[s])<g.ew*0.62&&Math.abs(f.y-g.cy)<g.eh*1.05)return s;
+  return null;
+}
+function applyTouches(){
+  if(!S)return;const P=S.rig.P;
+  let L=false,R=false,gz=null;
+  for(const p of ptrs.values()){if(p.kind==='cover'){if(p.eye==='L')L=true;else R=true;}else if(p.kind==='gaze')gz=p;}
+  P.setCover(L,R);
+  const one=L!==R?(L?'L':'R'):null;
+  if(one&&one!==S.lastCover){if(S.lastCover)S.coverSwitches++;S.lastCover=one;}
+  const g=S.geom;
+  if(gz&&g){P.tgtX=clamp((g.W/2-gz.f.x)/(g.W/2)*34,-32,32);P.tgtY=clamp((g.H/2-gz.f.y)/(g.H/2)*24,-22,22);S.targetPt=gz.f;}
+  else{P.tgtX=0;P.tgtY=0;S.targetPt=null;}
+}
+cv.addEventListener('pointerdown',e=>{
+  if(!S||!S.running)return;
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  const f=toFace(e),eye=hitEye(f);
+  ptrs.set(e.pointerId,{x0:e.clientX,y0:e.clientY,t0:performance.now(),f,kind:eye?'cover':'pending',eye});
+  applyTouches();e.preventDefault();
+});
+cv.addEventListener('pointermove',e=>{
+  const p=ptrs.get(e.pointerId);if(!p)return;
+  p.f=toFace(e);
+  if(p.kind==='pending'&&S.mode==='demo'&&Math.abs(e.clientX-p.x0)>18&&performance.now()-p.t0<220)p.kind='fling';
+  if(p.kind==='gaze')applyTouches();
+});
+function endPtr(e){
+  const p=ptrs.get(e.pointerId);if(!p)return;ptrs.delete(e.pointerId);
+  const dx=e.clientX-p.x0,dt=performance.now()-p.t0;
+  if(S&&S.mode==='demo'&&(p.kind==='fling'||(p.kind==='pending'&&Math.abs(dx)>40))&&dt<450){
+    const wpx=cv.clientWidth,frac=Math.abs(dx)/wpx,speed=frac/(Math.max(dt,40)/1000);
+    S.rig.queue(dx<0?1:-1,clamp(40+speed*95,50,450),clamp(frac*60,4,45),performance.now());
+  }
+  applyTouches();
+}
+cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
+function loop(now){
+  if(!S||!S.active)return;
+  const dt=Math.min(0.1,(now-(S.lastFrame||now))/1000);S.lastFrame=now;
+  if(S.mode==='demo'&&S.running)S.rig.runDemo(now);
+  let changed=false;
+  for(const p of ptrs.values())if(p.kind==='pending'&&now-p.t0>140){p.kind='gaze';changed=true;}
+  if(changed)applyTouches();
+  const P=S.rig.P;
+  if(P.tgtX>15)S.gazeR+=dt;else if(P.tgtX<-15)S.gazeL+=dt;
+  if(S.mode==='sensor'){const pr=innerHeight>innerWidth;if(pr!==S.wasPortrait){S.wasPortrait=pr;S.rot=pr?90:0;}}
+  S.geom=drawFace(cv,P,{mag:S.mag,demo:S.mode==='demo',now,rot:S.rot,target:S.targetPt});
+  requestAnimationFrame(loop);
+}
+function endSession(toResults){
+  if(!S)return;
+  S.active=false;S.running=false;
+  window.removeEventListener('devicemotion',onMotion);
+  try{S.wake&&S.wake.release();}catch(e){}
+  try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}
+  stage.classList.remove('full');document.body.classList.remove('locked');
+  ptrs.clear();overlay(null);
+  if(toResults)renderQuiz();
+}
+$('#doneBtn').addEventListener('click',()=>endSession(true));
+$('#rotBtn').addEventListener('click',()=>{if(S){S.rot=(S.rot+90)%360;S.wasPortrait=innerHeight>innerWidth;}});
+document.querySelectorAll('.thrust-row .btn').forEach(b=>b.addEventListener('click',()=>demoThrust(+b.dataset.dir)));
+const PRESET={good:[200,15],slow:[80,15],big:[230,38]};
+function demoThrust(dir){
+  if(!S||!S.running||S.mode!=='demo')return;
+  const pr=PRESET[document.querySelector('input[name="preset"]:checked').value];
+  S.rig.queue(dir,pr[0]*rand(0.95,1.05),pr[1]*rand(0.93,1.07),performance.now());
+}
+window.addEventListener('keydown',e=>{
+  if($('#exam').hidden||!S||S.mode!=='demo')return;
+  if(e.key==='ArrowLeft'){demoThrust(1);e.preventDefault();}
+  else if(e.key==='ArrowRight'){demoThrust(-1);e.preventDefault();}
+});
+
+/* ================= results ================= */
+function summarize(imps){
+  const n=imps.length,R=imps.filter(i=>i.side==='R'),L=imps.filter(i=>i.side==='L');
+  const sp=imps.filter(i=>i.peak>=TGT.vMin&&i.peak<=TGT.vMax).length;
+  const am=imps.filter(i=>i.amp>=TGT.aMin-TGT.aTol&&i.amp<=TGT.aMax+TGT.aTol).length;
+  const snap=imps.filter(i=>i.acc>=TGT.accMin&&i.bounce<=i.peak*TGT.bounceMax).length;
+  const valid=imps.filter(i=>i.valid).length;
+  const mR=median(R.map(i=>i.peak)),mL=median(L.map(i=>i.peak));
+  const asym=R.length&&L.length?Math.abs(mR-mL)/((mR+mL)/2):NaN;
+  const pk=imps.map(i=>i.peak),cvar=n>2?sd(pk)/mean(pk):NaN;
+  let alt=0;for(let k=1;k<n;k++)if(imps[k].side!==imps[k-1].side)alt++;
+  const altRate=n>1?alt/(n-1):NaN;
+  const ints=[];for(let k=1;k<n;k++){const d=imps[k].onset-imps[k-1].onset;if(d<8000)ints.push(d);}
+  const icv=ints.length>=3?sd(ints)/mean(ints):NaN;
+  return {n,R,L,sp,am,snap,valid,mR,mL,asym,cvar,altRate,icv,medV:median(pk),medA:median(imps.map(i=>i.amp))};
+}
+const chip=(ok,t)=>ok==null?`<span class="chip na">${t||'Not enough data'}</span>`:ok?`<span class="chip good"><i>✓</i>${t||'On target'}</span>`:`<span class="chip warn"><i>!</i>${t||'Needs work'}</span>`;
+function metricsHTML(s){
+  const n=s.n,frac=x=>n?x/n:0;
+  const rows=[];
+  const speedOk=n?frac(s.sp)>=0.8:null;
+  let speedCue='Fast enough to unmask a deficit, without risking the neck.';
+  if(n&&s.medV<TGT.vMin)speedCue='Speed up. Below about 150°/s the intact side and smooth pursuit can cover a deficit, so the saccade shrinks or vanishes.';
+  else if(n&&s.medV>TGT.vMax)speedCue='Ease off. Above 300°/s adds neck strain and no information.';
+  else if(n&&!speedOk)speedCue='Your median is fine but too many thrusts fell outside 150–300°/s. Aim for every thrust, not the average.';
+  rows.push(['Speed','OCAT 4',speedOk,`median ${f0(s.medV)}°/s · ${s.sp} of ${n} within 150–300°/s`,speedCue]);
+  const ampOk=n?frac(s.am)>=0.8:null;
+  let ampCue='Small and quick: what you want.';
+  if(n&&s.medA>TGT.aMax)ampCue='Shorten the swing to 10–20°. Large amplitudes were one of the commonest faults in the Ottawa residents.';
+  else if(n&&s.medA<TGT.aMin)ampCue='A little more travel: aim for 10–20°.';
+  else if(n&&!ampOk)ampCue='Median is right, but several thrusts wandered outside 10–20°.';
+  rows.push(['Amplitude','OCAT 5',ampOk,`median ${f0(s.medA)}° · ${s.am} of ${n} within 10–20° (±2°)`,ampCue]);
+  const snapOk=n?frac(s.snap)>=0.8:null;
+  const slowStart=s.R.concat(s.L).filter(i=>i.acc<TGT.accMin).length,bounced=s.R.concat(s.L).filter(i=>i.bounce>i.peak*TGT.bounceMax).length;
+  rows.push(['Onset and stop','abrupt, then dead stop',snapOk,`${slowStart} slow start${slowStart===1?'':'s'} · ${bounced} bounce-back${bounced===1?'':'s'}`,
+    snapOk?'Clean starts and stops.':slowStart>=bounced?'Start the thrust abruptly. A slow wind-up lets the patient anticipate it.':'Let the head stop at the end of the thrust; don\'t bring it straight back.']);
+  let consOk=null,consCue='Do thrusts to both sides to compare them.';
+  if(s.R.length&&s.L.length){
+    consOk=s.asym<=0.2&&(!Number.isFinite(s.cvar)||s.cvar<=0.3);
+    const weak=s.mR<s.mL?'right':'left';
+    consCue=consOk?'Even push on both sides.':s.asym>0.2?`Your ${weak} side was weaker. Match the push both ways, or you will create a false asymmetry.`:'Peak speed varied a lot from thrust to thrust. Aim for the same push every time.';
+  }
+  rows.push(['Consistency','OCAT 6',consOk,`right median ${f0(s.mR)} · left ${f0(s.mL)}°/s · spread ±${f0(s.cvar*100)}%`,consCue]);
+  let unpOk=null,unpCue='Do at least six thrusts to judge this.';
+  if(n>=6){
+    const altBad=s.altRate>=0.85||s.altRate<=0.15,timeBad=Number.isFinite(s.icv)&&s.icv<0.25;
+    unpOk=!altBad&&!timeBad;
+    unpCue=unpOk?'Sides and pauses varied. The patient could not see it coming.':altBad?'Your sides followed a pattern. Mix them, for example R R L R L L.':'Your rhythm was steady. Vary the pause before each thrust.';
+  }
+  rows.push(['Unpredictability','OCAT 3',unpOk,`sides alternated ${f0(s.altRate*100)}% of the time · pause varied ±${f0(s.icv*100)}%`,unpCue]);
+  return rows.map(r=>`<div class="metric"><h3>${r[0]} <span class="ocat">${r[1]}</span></h3>${chip(r[2])}<p class="val">${r[3]}</p><p class="cue">${r[4]}</p></div>`).join('');
+}
+function scatterSVG(imps){
+  const W=360,H=250,m={l:46,r:12,t:14,b:40},xm=45,ym=450;
+  const X=a=>m.l+clamp(a,0,xm)/xm*(W-m.l-m.r),Y=v=>H-m.b-clamp(v,0,ym)/ym*(H-m.t-m.b);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Peak velocity against amplitude for each thrust">`;
+  for(const v of [0,100,200,300,400])s+=`<line class="gridl" x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="axt" x="${m.l-6}" y="${Y(v)+4}" text-anchor="end">${v}</text>`;
+  for(const a of [0,10,20,30,40])s+=`<text class="axt" x="${X(a)}" y="${H-m.b+15}" text-anchor="middle">${a}</text>`;
+  s+=`<line class="axl" x1="${m.l}" x2="${W-m.r}" y1="${Y(0)}" y2="${Y(0)}"/>`;
+  s+=`<rect class="zone" x="${X(10)}" y="${Y(300)}" width="${X(20)-X(10)}" height="${Y(150)-Y(300)}"/><text class="zone-t" x="${X(10)+4}" y="${Y(300)+12}">target</text>`;
+  s+=`<text class="axt" x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle">amplitude (°)</text><text class="axt" transform="translate(12 ${(m.t+H-m.b)/2}) rotate(-90)" text-anchor="middle">peak head velocity (°/s)</text>`;
+  imps.forEach((i,k)=>{s+=`<g><title>#${k+1} ${i.side==='R'?'Right':'Left'} · ${f0(i.peak)}°/s · ${f0(i.amp)}°</title><circle cx="${X(i.amp)}" cy="${Y(i.peak)}" r="12" fill="transparent"/><circle class="dot dot-${i.side}" cx="${X(i.amp)}" cy="${Y(i.peak)}" r="5.5"/></g>`;});
+  return s+'</svg>';
+}
+function vhitSVG(list,side,id){
+  const W=340,H=210,m={l:40,r:10,t:28,b:30},xm=400;
+  const peak=Math.max(300,...list.map(i=>i.peak));const ym=peak>320?400:300;
+  const X=t=>m.l+clamp(t,0,xm)/xm*(W-m.l-m.r),Y=v=>H-m.b-clamp(v,-40,ym)/ym*(H-m.t-m.b);
+  const gains=list.map(i=>i.gain).filter(Number.isFinite);const g=median(gains);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${side==='R'?'Right':'Left'} thrusts: head and eye velocity traces, median gain ${f2(g)}"><defs><clipPath id="${id}"><rect x="${m.l}" y="${m.t-4}" width="${W-m.l-m.r}" height="${H-m.t-m.b+8}"/></clipPath></defs>`;
+  for(let v=0;v<=ym;v+=100)s+=`<line class="gridl" x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="axt" x="${m.l-6}" y="${Y(v)+4}" text-anchor="end">${v}</text>`;
+  for(const t of [0,100,200,300,400])s+=`<text class="axt" x="${X(t)}" y="${H-m.b+15}" text-anchor="middle">${t}</text>`;
+  s+=`<text class="axt" x="${W-m.r}" y="${H-3}" text-anchor="end">ms after onset</text>`;
+  s+=`<text class="ttl" x="${m.l}" y="16">${side==='R'?'Right':'Left'} thrusts · n=${list.length}</text><text class="ttl" x="${W-m.r}" y="16" text-anchor="end">gain ${f2(g)}</text>`;
+  if(!list.length)s+=`<text class="axt" x="${(m.l+W)/2}" y="${H/2}" text-anchor="middle">No thrusts to this side</text>`;
+  s+=`<g clip-path="url(#${id})">`;
+  const pts=(tr,key)=>tr.filter(p=>p.t>=-10&&p.t<=xm).map(p=>`${X(p.t).toFixed(1)},${Y(p[key]).toFixed(1)}`).join(' ');
+  for(const i of list)s+=`<polyline class="tr-head" points="${pts(i.trace,'h')}"/>`;
+  for(const i of list)s+=`<polyline class="tr-eye ln-${side}" points="${pts(i.trace,'e')}"/>`;
+  return s+'</g></svg>';
+}
+function renderQuiz(){
+  const r=S.imps.filter(i=>i.side==='R').length,l=S.imps.length-r;
+  S.gazeDone=S.gazeR>0.8&&S.gazeL>0.8;S.coverDone=S.coverSwitches>=2;
+  const res=$('#results');
+  res.innerHTML=`<header class="masthead"><p class="eyebrow">Step 1 of 2 · commit before you see the traces</p><h1>What did you see?</h1>
+  <p class="lead">${S.case.vignette}</p>
+  <p class="mono small">${S.imps.length} thrusts recorded (${r} right, ${l} left) · side gaze ${S.gazeDone?'tested':'not tested'} · alternate cover ${S.coverDone?'tested':'not tested'}</p></header>
+  <form id="quiz" class="panel quiz">${QUIZ.map(q=>`<fieldset><legend>${q.label}</legend><div class="seg">${q.opts.map(o=>`<input type="radio" name="q-${q.id}" id="q-${q.id}-${o[0]}" value="${o[0]}"><label for="q-${q.id}-${o[0]}">${o[1]}</label>`).join('')}</div></fieldset>`).join('')}
+  <div class="actions"><button class="btn primary" type="submit">Check my answers</button><button class="btn" type="button" id="skipQuiz">Skip to results</button></div></form>`;
+  show('results');
+  $('#quiz').addEventListener('submit',e=>{e.preventDefault();const a={};QUIZ.forEach(q=>{const x=document.querySelector(`input[name="q-${q.id}"]:checked`);a[q.id]=x?x.value:null;});renderReveal(a);});
+  $('#skipQuiz').addEventListener('click',()=>renderReveal(null));
+}
+function linkNotes(s){
+  const c=S.case,notes=[];
+  for(const side of ['R','L']){
+    const list=side==='R'?s.R:s.L,word=side==='R'?'right':'left';
+    if(c.gain[side]<0.7){
+      if(list.length<3)notes.push(`You did only ${list.length} thrust${list.length===1?'':'s'} to the ${word}, the weak side. Do at least five per side before deciding.`);
+      else{
+        const mv=median(list.map(i=>i.peak));
+        const sacs=list.map(i=>Math.max(0,...i.sacs.filter(x=>x.t>i.dur).map(x=>x.amp)));
+        const ms=median(sacs);
+        if(mv<TGT.vMin)notes.push(`Your thrusts to the ${word} peaked at a median ${f0(mv)}°/s. At that speed this patient's overt catch-up saccade was only about ${f0(ms)}°, easy to miss. Faster thrusts make it obvious.`);
+        else notes.push(`Your ${word} thrusts were fast enough (median ${f0(mv)}°/s), and the median overt catch-up saccade was ${f0(ms)}°.`);
+      }
+    }
+  }
+  if(c.key.gaze==='changing'&&!S.gazeDone)notes.push('You did not hold side gaze in both directions, so you could not see the direction-changing nystagmus.');
+  if(c.key.skew==='yes'&&!S.coverDone)notes.push('You did not do the alternate cover test. This patient had a skew deviation.');
+  return notes;
+}
+function renderReveal(ans){
+  const c=S.case,s=summarize(S.imps),key=c.key;
+  let correct=null,rowsQ='';
+  if(ans){
+    correct=ans.call===key.call;
+    rowsQ=QUIZ.map(q=>{const ok=ans[q.id]===key[q.id];return `<tr><td>${q.label}</td><td>${optLabel(q.id,ans[q.id])}</td><td>${optLabel(q.id,key[q.id])}</td><td>${ok?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</td></tr>`;}).join('');
+  }
+  const log=store.get('hintsTrainer.log.v1',[]);log.push({d:Date.now(),mode:S.mode,caseId:c.id,n:s.n,valid:s.valid,medV:s.medV,medA:s.medA,correct});store.set('hintsTrainer.log.v1',log.slice(-200));
+  const notes=linkNotes(s);
+  const R=S.imps.filter(i=>i.side==='R'),L=S.imps.filter(i=>i.side==='L');
+  const tbl=S.imps.map((i,k)=>{const ov=i.sacs.filter(x=>x.t>i.dur),co=i.sacs.filter(x=>x.t<=i.dur);
+    const eye=ov.length?`overt ${f0(Math.max(...ov.map(x=>x.amp)))}°`:co.length?'covert only':'on target';
+    return `<tr><td class="num">${k+1}</td><td><span class="sw ${i.side}"></span>${i.side==='R'?'Right':'Left'}</td><td class="num">${f0(i.peak)}</td><td class="num">${f0(i.amp)}</td><td class="num">${f0(i.acc)}</td><td class="num">${f2(i.gain)}</td><td>${eye}</td><td>${i.valid?'<span class="ok">valid</span>':i.flags.map(x=>x[1]).join(', ')}</td></tr>`;}).join('');
+  const verdict=ans?`<p class="lead">Your conclusion: <b>${optLabel('call',ans.call)}</b> ${correct?'<span class="ok">✓ correct</span>':`<span class="bad">✗</span> The answer was <b>${optLabel('call',key.call)}</b>.`}</p>`:'<p class="lead">You skipped the findings. Here is the answer.</p>';
+  $('#results').innerHTML=`<header class="masthead verdict"><p class="eyebrow">Step 2 of 2 · the patient had</p><h1>${c.name}</h1>${verdict}</header>
+  ${ans?`<section aria-labelledby="fH"><h2 id="fH">Findings</h2><div class="tbl-wrap"><table><thead><tr><th>Finding</th><th>You</th><th>Answer</th><th></th></tr></thead><tbody>${rowsQ}</tbody></table></div></section>`:''}
+  <section class="callout"><p>${c.teach}</p></section>
+  ${notes.length?`<section aria-labelledby="lH"><h2 id="lH">How your hands shaped what you saw</h2>${notes.map(n=>`<p>${n}</p>`).join('')}</section>`:''}
+  <section aria-labelledby="tH"><h2 id="tH">Your thrusts</h2>
+    ${S.mode==='demo'?'<p class="note">These thrusts came from the on-screen controls, so they say nothing about your hands. Partner practice scores your technique.</p>':''}
+    <div class="stats"><div class="stat"><b class="mono">${s.valid}/${s.n}</b><span>valid thrusts</span></div><div class="stat"><b class="mono">${f0(s.medV)}</b><span>median peak °/s</span></div><div class="stat"><b class="mono">${f0(s.medA)}°</b><span>median amplitude</span></div></div>
+    <div>${metricsHTML(s)}</div>
+    ${s.n?`<div><p class="small" style="margin-bottom:6px">Order of thrusts</p><div class="seq">${S.imps.map(i=>`<span class="${i.side}">${i.side}</span>`).join('')}</div></div>`:''}
+  </section>
+  ${s.n?`<section aria-labelledby="cH"><h2 id="cH">Traces</h2>
+    <div class="charts">
+      <figure class="chart">${vhitSVG(R,'R','clipR')}<figcaption><span><span class="sw H"></span>head velocity (°/s)</span><span><span class="sw R"></span>eye velocity, sign flipped</span></figcaption></figure>
+      <figure class="chart">${vhitSVG(L,'L','clipL')}<figcaption><span><span class="sw H"></span>head velocity (°/s)</span><span><span class="sw L"></span>eye velocity, sign flipped</span></figcaption></figure>
+      <figure class="chart">${scatterSVG(S.imps)}<figcaption><span><span class="sw R"></span>right</span><span><span class="sw L"></span>left</span><span><span class="sw Z"></span>target: 10–20°, 150–300°/s</span></figcaption></figure>
+    </div>
+    <p class="small">Read the traces like a video HIT report. When the reflex works, the eye curve lies on the head curve and gain sits near 1. Spikes after the head curve ends are overt catch-up saccades; spikes inside it are covert.</p>
+    <div class="tbl-wrap"><table><thead><tr><th class="num">#</th><th>Side</th><th class="num">Peak °/s</th><th class="num">Amp °</th><th class="num">Onset °/s²</th><th class="num">Gain</th><th>Eyes</th><th>Thrust</th></tr></thead><tbody>${tbl}</tbody></table></div>
+  </section>`:''}
+  <section aria-labelledby="oH"><h2 id="oH">For the observer</h2><p class="small">The phone can't see these. Ask whoever watched you.</p>
+    <div class="check">
+      <label><input type="checkbox" id="ck1"> Asked about neck problems, then told the patient to keep their eyes on the examiner's nose and relax the neck (OCAT 1)</label>
+      <label><input type="checkbox" id="ck2"> Hands on the sides of the head, clear of the jaw (OCAT 2)</label>
+      <label><input type="checkbox" id="ck3"> Standing close with elbows bent, not arms locked straight (OCAT 2)</label>
+      <label><input type="checkbox" id="ck4"> Head flexed about 30° before thrusting (OCAT 2)</label>
+    </div></section>
+  <div class="actions"><button class="btn primary" id="again">Same patient again</button><button class="btn" id="another">New mystery case</button><button class="btn" id="homeBtn">Back to start</button></div>`;
+  const prev={caseId:c.id,mode:S.mode,coach:S.coach,mag:S.mag};
+  $('#again').onclick=()=>beginSession(prev,'');
+  $('#another').onclick=()=>beginSession(Object.assign({},prev,{caseId:'mystery'}),'');
+  $('#homeBtn').onclick=()=>{renderProgress();show('home');};
+  window.scrollTo(0,0);
+}
+
+/* ================= boot ================= */
+buildCaseSelect();probeSensor();renderProgress();
+$('#startBtn').addEventListener('click',startFromHome);
+if(reduceMotion){
+  const rig=new Rig(caseById('vnR'));drawFace(hero.cv,rig.P,{mag:2,demo:true,now:performance.now()});
+  const b=$('#heroPlay');b.hidden=false;b.onclick=()=>{b.hidden=true;heroStart();};
+}else heroStart();
+document.addEventListener('visibilitychange',()=>{if(document.hidden)heroStop();else if(!$('#home').hidden&&(!reduceMotion||$('#heroPlay').hidden))heroStart();});
+</script>
+</body>
+</html>
