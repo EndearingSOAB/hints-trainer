@@ -128,6 +128,17 @@ details summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px
 details[open] summary{margin-bottom:10px}
 ol.refs{margin:0;padding-left:22px;display:grid;gap:6px;font-size:.86rem;color:var(--muted)}
 ol.refs a{color:var(--ink);word-break:break-all}
+ul.reads{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+ul.reads li{display:grid;grid-template-columns:5.4rem 1fr;gap:2px 10px;align-items:baseline}
+ul.reads .tag{grid-row:span 2;justify-self:start;margin:0}
+ul.reads a{font-weight:700}
+ul.reads .small{grid-column:2}
+.tag.r-video{background:var(--warn-soft);color:var(--warn)}
+.tag.r-overview{background:var(--accent-soft);color:var(--ink)}
+.tag.r-criteria{background:var(--good-soft);color:var(--good)}
+.tag.r-paper{background:var(--grid);color:var(--muted)}
+.read-group{display:grid;gap:10px;padding-top:6px}
+.read-group h3{margin-top:12px}
 tfoot td{border-top:2px solid var(--rule);border-bottom:0}
 .hud-cue{font:800 1.5rem/1 var(--f-display);font-stretch:80%;letter-spacing:.02em;padding:4px 10px;border-radius:8px;opacity:0;transition:opacity .18s}
 .hud-cue.on{opacity:1}
@@ -144,6 +155,15 @@ tfoot td{border-top:2px solid var(--rule);border-bottom:0}
 .overlay .btn{border-color:#eef3f5;color:#eef3f5}
 .overlay .btn.primary{border-color:#f2b632;background:#f2b632;color:#1d1500}
 .vig{font-size:1.05rem;color:#eef3f5!important}
+.cal-gauge{position:relative;width:min(420px,78vw);height:22px;border-radius:11px;background:#1d272e;overflow:hidden}
+.cal-gauge .zone{position:absolute;top:0;bottom:0;background:#2b3840}
+.cal-gauge .zone.on{background:#2f7a52}
+.cal-gauge .zr{left:0;width:25%}
+.cal-gauge .zc{left:45%;width:10%}
+.cal-gauge .zl{right:0;width:25%}
+.cal-gauge i{position:absolute;top:3px;left:50%;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:#f2b632;box-shadow:0 0 0 2px #0b0f12}
+.cal-ends{display:flex;justify-content:space-between;width:min(420px,78vw);font:500 .72rem/1 var(--f-mono);color:#9fb0ba}
+.overlay p.cal-hint{color:#f2b632;font-weight:700;min-height:1.4em}
 .demo-bar{display:grid;gap:12px}
 .thrust-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .thrust-row .btn{display:flex;justify-content:center;align-items:center;gap:8px}
@@ -252,7 +272,7 @@ footer ul{margin:0;padding-left:18px;display:grid;gap:4px}
     <ol class="steps">
       <li><b>Mount the phone.</b><span>Landscape, across your partner's eyes, screen facing out. A running armband around the head or a Velcro strap holds it. Turn off rotation lock. Skip partners with neck problems.</span></li>
       <li><b>Position yourself.</b><span>Partner seated, you standing close in front with elbows bent. Hands on the temporal-parietal region, clear of the jaw [5]. Tilt the head down about 30° so the horizontal canals sit level [6].</span></li>
-      <li><b>Calibrate.</b><span>Tap Calibrate and mount the phone during the countdown. Hold the head still, then turn it slowly to the patient's right (your left) and back.</span></li>
+      <li><b>Calibrate.</b><span>Tap Calibrate and mount the phone during the countdown. Hold the head still. Then turn it slowly about 30° to the patient's right (your left), back to the centre, about 30° to the patient's left, and back to the centre. The bar on the screen shows where the head is.</span></li>
       <li><b>Thrust.</b><span>Small (5–20°) [5], fast (150–300°/s) and abrupt (over 2000°/s²) [6], then stop dead. Mix sides and pauses. The counter shows adequate and failed attempts; you need five adequate each way.</span></li>
       <li><b>Watch the eyes.</b><span>A catch-up saccade back to your nose at the end of a thrust means that side is weak. Look for nystagmus while the patient looks at you.</span></li>
       <li><b>Test gaze and skew.</b><span>Press and hold near the left or right screen edge to make the patient look there. For alternate cover, lay two fingers over one eye for 2 seconds, then move them to the other.</span></li>
@@ -289,12 +309,23 @@ footer ul{margin:0;padding-left:18px;display:grid;gap:4px}
 
   <section id="progress" aria-labelledby="progH" hidden></section>
 
+  <section id="reading" aria-labelledby="readH">
+    <h2 id="readH">Further reading</h2>
+    <p>All free to open: short overviews from StatPearls, real-patient videos from NOVEL (the University of Utah's neuro-ophthalmology library), the Bárány Society's diagnostic criteria, and open-access papers. Each case also lists its own reading on the results page.</p>
+    <h3>The exam</h3>
+    <div id="readGeneral"></div>
+    <details>
+      <summary>Reading for each condition</summary>
+      <div id="readByCase" class="read-group"></div>
+    </details>
+  </section>
+
   <section id="sources" aria-labelledby="srcH">
     <h2 id="srcH">Sources and assumptions</h2>
     <p>Every number comes from one research collaboration, the Bern vestibular group (Mantokoudis, Korda) and their Johns Hopkins co-authors (Newman-Toker, Kattah, Zee) [2–9], unless it is marked as a design choice. The Ottawa study [1] is why the trainer exists.</p>
     <details>
       <summary>Every value in the trainer and where it comes from</summary>
-      <div class="tbl-wrap"><table class="src"><thead><tr><th>What</th><th>Value in the trainer</th><th>Basis</th></tr></thead><tbody><tr class="grp"><th colspan="3">Your thrust</th></tr><tr><td>Peak head velocity</td><td>150–300°/s</td><td><span class="tag m">Measured</span> [6] Valid range in the Bern vHIT course.</td></tr><tr><td>Onset acceleration</td><td>over 2000°/s²</td><td><span class="tag m">Measured</span> [6] Minimum needed to drive the canal. A phone samples at about 60 Hz, so it may read acceleration a little low.</td></tr><tr><td>Amplitude</td><td>5–20°</td><td><span class="tag m">Measured</span> [5] Range an expert used at the bedside; 10–20° in [8].</td></tr><tr><td>Start of a thrust</td><td>head faster than 20°/s</td><td><span class="tag m">Measured</span> [5]</td></tr><tr><td>Bounce-back</td><td>flagged above 129°/s</td><td><span class="tag a">Adapted</span> [6] Trained novices ended with overshoot of 40–129°/s. Using the top of that range as the cut-off is a design choice.</td></tr><tr><td>Unpredictable sides and pauses</td><td>sides alternate 25–75% of the time; pauses vary by 30% or more</td><td><span class="tag d">Design choice</span> The reason is measured [9]: predictable thrusts raised the affected-side gain (0.39 to 0.47) and brought covert saccades earlier (153 to 140 ms). The thresholds are a design choice.</td></tr><tr><td>Head pitch, hand position</td><td>30° down; hands on the temporal-parietal region</td><td><span class="tag m">Measured</span> [6], [5]</td></tr><tr><td>Thrust detection</td><td>head faster than 70°/s</td><td><span class="tag d">Design choice</span> Engineering choice.</td></tr><tr><td>Practice needed</td><td>80% valid thrusts after about 160</td><td><span class="tag m">Measured</span> [6]</td></tr><tr class="grp"><th colspan="3">Simulated patient</th></tr><tr><td>How gain is measured</td><td>eye ÷ head velocity, 40–60 ms after onset</td><td><span class="tag m">Measured</span> [5]</td></tr><tr><td>Vestibular neuritis gain</td><td>0.52 affected side, 0.87 other side</td><td><span class="tag m">Measured</span> [4] Mean of 16 patients. The model was calibrated to reproduce these values on a 15°, 200°/s thrust.</td></tr><tr><td>Normal reflex and PICA stroke gain</td><td>0.94 right, 0.93 left</td><td><span class="tag m">Measured</span> [4] PICA strokes had bilaterally normal gains; the normal case uses the same values.</td></tr><tr><td>AICA stroke gain</td><td>asymmetric, neuritis values</td><td><span class="tag a">Adapted</span> [4] reported AICA gains as heterogeneous (asymmetric, bilaterally low or normal). This case uses the asymmetric pattern with the neuritis means.</td></tr><tr><td>Bilateral loss gain</td><td>0.52 both sides</td><td><span class="tag d">Design choice</span> These papers did not measure bilateral loss. The neuritis value [4] is applied to both sides.</td></tr><tr><td>Compensated loss</td><td>gain 0.65; 75% covert saccades</td><td><span class="tag a">Adapted</span> Gain within the borderline neuritis range of 0.62–0.73 [4]. The covert share is a design choice.</td></tr><tr><td>Gain versus head speed</td><td>full gain below 30°/s, lesion value from 150°/s</td><td><span class="tag d">Design choice</span> The principle that slow thrusts let the intact side and vision compensate is from [6]. The numbers are a design choice.</td></tr><tr><td>Covert saccades in acute loss</td><td>49%</td><td><span class="tag m">Measured</span> [5] Share of catch-up saccades fired during the thrust. The model gives about 55% on a standard thrust.</td></tr><tr><td>Covert saccade timing</td><td>153 ± 37 ms, within 42–233 ms</td><td><span class="tag m">Measured</span> [9] mean ± SD, [5] range. Keeping each covert saccade inside the thrust is a design choice.</td></tr><tr><td>Overt saccade timing</td><td>114–299 ms, after the head stops</td><td><span class="tag m">Measured</span> [5]</td></tr><tr><td>Catch-up saccade size</td><td>the gaze error left over</td><td><span class="tag d">Design choice</span> A model output, not set directly. Check: about 2.4° remains at the end of a 15° thrust in neuritis, versus 6.9 ± 3.3° with motorized thrusts [9]. This does not match.</td></tr><tr><td>Smallest visible saccade</td><td>about 1°</td><td><span class="tag m">Measured</span> [5] An expert spotted 93% of saccades over 1°.</td></tr><tr><td>Saccade duration</td><td>2.2 ms per degree + 21 ms</td><td><span class="tag d">Design choice</span> Standard eye-movement physiology, not from these papers.</td></tr><tr><td>Nystagmus pattern</td><td>horizontal-torsional, beats away from the lesion, stronger toward the fast phase, never reverses</td><td><span class="tag m">Measured</span> [2]</td></tr><tr><td>Nystagmus speed, torsion size</td><td>4°/s while looking at you</td><td><span class="tag d">Design choice</span> These papers give no peripheral value to use.</td></tr><tr><td>Direction-changing gaze nystagmus</td><td>PICA case; drift time constant 3.5 s</td><td><span class="tag a">Adapted</span> The sign is from [2]. The time constant is a design choice.</td></tr><tr><td>Side gaze for the N test</td><td>beyond 15°, held 2 s</td><td><span class="tag a">Adapted</span> 15 ± 5° in [8]. The 2-second hold is a design choice.</td></tr><tr><td>Central skew</td><td>5.7°</td><td><span class="tag m">Measured</span> [2] Mean of 9.9 prism dioptres.</td></tr><tr><td>Skew in neuritis</td><td>0.37°</td><td><span class="tag m">Measured</span> [7] Median; too small to see.</td></tr><tr><td>Skew thresholds</td><td>3° visible, over 3.3° central</td><td><span class="tag m">Measured</span> [7]</td></tr><tr><td>Which eye is higher</td><td></td><td><span class="tag d">Design choice</span> Design choice.</td></tr><tr><td>Alternate cover hold</td><td>2 s per eye</td><td><span class="tag a">Adapted</span> The video skew test in [7] alternated every 2 s.</td></tr><tr><td>HINTS rule, INFARCT, early MRI misses</td><td>12% missed within 48 h</td><td><span class="tag m">Measured</span> [2]</td></tr><tr><td>HINTS plus</td><td>new hearing loss counts as central</td><td><span class="tag m">Measured</span> [3]</td></tr><tr class="grp"><th colspan="3">Grade</th></tr><tr><td>Point weights and bands</td><td>100 points, 4 bands</td><td><span class="tag d">Design choice</span> Not validated. Compare with expert Ottawa ratings before formal use.</td></tr><tr><td>Ottawa items, resident data</td><td></td><td><span class="tag m">Measured</span> [1]</td></tr></tbody></table></div>
+      <div class="tbl-wrap"><table class="src"><thead><tr><th>What</th><th>Value in the trainer</th><th>Basis</th></tr></thead><tbody><tr class="grp"><th colspan="3">Your thrust</th></tr><tr><td>Peak head velocity</td><td>150–300°/s</td><td><span class="tag m">Measured</span> [6] Valid range in the Bern vHIT course.</td></tr><tr><td>Onset acceleration</td><td>over 2000°/s²</td><td><span class="tag m">Measured</span> [6] Minimum needed to drive the canal. Phone browsers deliver about 60 Hz; the trainer resamples to 250 Hz, which in simulation keeps acceleration within about 2% of a 250 Hz recording (about 14% low at 30 Hz).</td></tr><tr><td>Amplitude</td><td>5–20°</td><td><span class="tag m">Measured</span> [5] Range an expert used at the bedside; 10–20° in [8].</td></tr><tr><td>Start of a thrust</td><td>head faster than 20°/s</td><td><span class="tag m">Measured</span> [5]</td></tr><tr><td>Bounce-back</td><td>flagged above 129°/s</td><td><span class="tag a">Adapted</span> [6] Trained novices ended with overshoot of 40–129°/s. Using the top of that range as the cut-off is a design choice.</td></tr><tr><td>Unpredictable sides and pauses</td><td>sides alternate 25–75% of the time; pauses vary by 30% or more</td><td><span class="tag d">Design choice</span> The reason is measured [9]: predictable thrusts raised the affected-side gain (0.39 to 0.47) and brought covert saccades earlier (153 to 140 ms). The thresholds are a design choice.</td></tr><tr><td>Head pitch, hand position</td><td>30° down; hands on the temporal-parietal region</td><td><span class="tag m">Measured</span> [6], [5]</td></tr><tr><td>Thrust detection</td><td>head faster than 70°/s</td><td><span class="tag d">Design choice</span> Engineering choice.</td></tr><tr><td>Calibration</td><td>1.5 s still; about 30° to each side (at least 20°); centre = within 4° and still for 0.35 s; both turns within 37° of the same axis</td><td><span class="tag d">Design choice</span> Engineering choice. Video HIT goggles measure head velocity with a built-in gyroscope, and their gains matched search coils (MacDougall 2009, <a href="https://doi.org/10.1212/WNL.0b013e3181bacf85" target="_blank" rel="noopener">doi</a>). A phone strapped across the eyes has not been validated.</td></tr><tr><td>Practice needed</td><td>80% valid thrusts after about 160</td><td><span class="tag m">Measured</span> [6]</td></tr><tr class="grp"><th colspan="3">Simulated patient</th></tr><tr><td>How gain is measured</td><td>eye ÷ head velocity, 40–60 ms after onset</td><td><span class="tag m">Measured</span> [5]</td></tr><tr><td>Vestibular neuritis gain</td><td>0.52 affected side, 0.87 other side</td><td><span class="tag m">Measured</span> [4] Mean of 16 patients. The model was calibrated to reproduce these values on a 15°, 200°/s thrust.</td></tr><tr><td>Normal reflex and PICA stroke gain</td><td>0.94 right, 0.93 left</td><td><span class="tag m">Measured</span> [4] PICA strokes had bilaterally normal gains; the normal case uses the same values.</td></tr><tr><td>AICA stroke gain</td><td>asymmetric, neuritis values</td><td><span class="tag a">Adapted</span> [4] reported AICA gains as heterogeneous (asymmetric, bilaterally low or normal). This case uses the asymmetric pattern with the neuritis means.</td></tr><tr><td>Bilateral loss gain</td><td>0.52 both sides</td><td><span class="tag d">Design choice</span> These papers did not measure bilateral loss. The neuritis value [4] is applied to both sides.</td></tr><tr><td>Compensated loss</td><td>gain 0.65; 75% covert saccades</td><td><span class="tag a">Adapted</span> Gain within the borderline neuritis range of 0.62–0.73 [4]. The covert share is a design choice.</td></tr><tr><td>Gain versus head speed</td><td>full gain below 30°/s, lesion value from 150°/s</td><td><span class="tag d">Design choice</span> The principle that slow thrusts let the intact side and vision compensate is from [6]. The numbers are a design choice.</td></tr><tr><td>Covert saccades in acute loss</td><td>49%</td><td><span class="tag m">Measured</span> [5] Share of catch-up saccades fired during the thrust. The model gives about 55% on a standard thrust.</td></tr><tr><td>Covert saccade timing</td><td>153 ± 37 ms, within 42–233 ms</td><td><span class="tag m">Measured</span> [9] mean ± SD, [5] range. Keeping each covert saccade inside the thrust is a design choice.</td></tr><tr><td>Overt saccade timing</td><td>114–299 ms, after the head stops</td><td><span class="tag m">Measured</span> [5]</td></tr><tr><td>Catch-up saccade size</td><td>the gaze error left over</td><td><span class="tag d">Design choice</span> A model output, not set directly. Check: about 2.4° remains at the end of a 15° thrust in neuritis, versus 6.9 ± 3.3° with motorized thrusts [9]. This does not match.</td></tr><tr><td>Smallest visible saccade</td><td>about 1°</td><td><span class="tag m">Measured</span> [5] An expert spotted 93% of saccades over 1°.</td></tr><tr><td>Saccade duration</td><td>2.2 ms per degree + 21 ms</td><td><span class="tag d">Design choice</span> Standard eye-movement physiology, not from these papers.</td></tr><tr><td>Nystagmus pattern</td><td>horizontal-torsional, beats away from the lesion, stronger toward the fast phase, never reverses</td><td><span class="tag m">Measured</span> [2]</td></tr><tr><td>Nystagmus speed, torsion size</td><td>4°/s while looking at you</td><td><span class="tag d">Design choice</span> These papers give no peripheral value to use.</td></tr><tr><td>Direction-changing gaze nystagmus</td><td>PICA case; drift time constant 3.5 s</td><td><span class="tag a">Adapted</span> The sign is from [2]. The time constant is a design choice.</td></tr><tr><td>Side gaze for the N test</td><td>beyond 15°, held 2 s</td><td><span class="tag a">Adapted</span> 15 ± 5° in [8]. The 2-second hold is a design choice.</td></tr><tr><td>Central skew</td><td>5.7°</td><td><span class="tag m">Measured</span> [2] Mean of 9.9 prism dioptres.</td></tr><tr><td>Skew in neuritis</td><td>0.37°</td><td><span class="tag m">Measured</span> [7] Median; too small to see.</td></tr><tr><td>Skew thresholds</td><td>3° visible, over 3.3° central</td><td><span class="tag m">Measured</span> [7]</td></tr><tr><td>Which eye is higher</td><td></td><td><span class="tag d">Design choice</span> Design choice.</td></tr><tr><td>Alternate cover hold</td><td>2 s per eye</td><td><span class="tag a">Adapted</span> The video skew test in [7] alternated every 2 s.</td></tr><tr><td>HINTS rule, INFARCT, early MRI misses</td><td>12% missed within 48 h</td><td><span class="tag m">Measured</span> [2]</td></tr><tr><td>HINTS plus</td><td>new hearing loss counts as central</td><td><span class="tag m">Measured</span> [3]</td></tr><tr class="grp"><th colspan="3">Grade</th></tr><tr><td>Point weights and bands</td><td>100 points, 4 bands</td><td><span class="tag d">Design choice</span> Not validated. Compare with expert Ottawa ratings before formal use.</td></tr><tr><td>Ottawa items, resident data</td><td></td><td><span class="tag m">Measured</span> [1]</td></tr></tbody></table></div>
     </details>
     <ol class="refs"><li>Lelli DA, Rourke R, Tse D. Competence of senior otolaryngology residents with the bedside head impulse test: has there been improvement after 5 years of Competency By Design? J Otolaryngol Head Neck Surg. 2024;53:19160216241288817. <a href="https://doi.org/10.1177/19160216241288817" target="_blank" rel="noopener">doi:10.1177/19160216241288817</a></li><li>Kattah JC, Talkad AV, Wang DZ, Hsieh YH, Newman-Toker DE. HINTS to diagnose stroke in the acute vestibular syndrome: three-step bedside oculomotor examination more sensitive than early MRI diffusion-weighted imaging. Stroke. 2009;40(11):3504-10. <a href="https://doi.org/10.1161/STROKEAHA.109.551234" target="_blank" rel="noopener">doi:10.1161/STROKEAHA.109.551234</a></li><li>Newman-Toker DE, Kerber KA, Hsieh YH, Pula JH, Omron R, Saber Tehrani AS, Mantokoudis G, Hanley DF, Zee DS, Kattah JC. HINTS outperforms ABCD2 to screen for stroke in acute continuous vertigo and dizziness. Acad Emerg Med. 2013;20(10):986-96. <a href="https://doi.org/10.1111/acem.12223" target="_blank" rel="noopener">doi:10.1111/acem.12223</a></li><li>Mantokoudis G, Tehrani AS, Wozniak A, Eibenberger K, Kattah JC, Guede CI, Zee DS, Newman-Toker DE. VOR gain by head impulse video-oculography differentiates acute vestibular neuritis from stroke. Otol Neurotol. 2015;36(3):457-65. <a href="https://doi.org/10.1097/MAO.0000000000000638" target="_blank" rel="noopener">doi:10.1097/MAO.0000000000000638</a></li><li>Korda A, Carey JP, Zamaro E, Caversaccio MD, Mantokoudis G. How good are we in evaluating a bedside head impulse test? Ear Hear. 2020;41(6):1747-51. <a href="https://doi.org/10.1097/AUD.0000000000000894" target="_blank" rel="noopener">doi:10.1097/AUD.0000000000000894</a></li><li>Korda A, Sauter TC, Caversaccio MD, Mantokoudis G. Quantifying a learning curve for video head impulse test: pitfalls and pearls. Front Neurol. 2021;11:615651. <a href="https://doi.org/10.3389/fneur.2020.615651" target="_blank" rel="noopener">doi:10.3389/fneur.2020.615651</a></li><li>Korda A, Zamaro E, Wagner F, Morrison M, Caversaccio MD, Sauter TC, Schneider E, Mantokoudis G. Acute vestibular syndrome: is skew deviation a central sign? J Neurol. 2022;269(3):1396-403. <a href="https://doi.org/10.1007/s00415-021-10692-6" target="_blank" rel="noopener">doi:10.1007/s00415-021-10692-6</a></li><li>Korda A, Wimmer W, Zamaro E, Wagner F, Sauter TC, Caversaccio MD, Mantokoudis G. Videooculography "HINTS" in acute vestibular syndrome: a prospective study. Front Neurol. 2022;13:920357. <a href="https://doi.org/10.3389/fneur.2022.920357" target="_blank" rel="noopener">doi:10.3389/fneur.2022.920357</a></li><li>Kerkeni H, Zee DS, Korda A, Morrison M, Mantokoudis G, Ramat S. Corrective saccades in acute vestibular neuritis: studying the role of prediction with automated passively induced head impulses. J Neurophysiol. 2023;129(2):445-54. <a href="https://doi.org/10.1152/jn.00382.2022" target="_blank" rel="noopener">doi:10.1152/jn.00382.2022</a></li></ol>
   </section>
@@ -400,6 +431,59 @@ const CASES=[
   teach:'The right HIT is abnormal and the nystagmus is unidirectional, so two HINTS components look peripheral. AICA stroke gains were heterogeneous: asymmetric, bilaterally low or normal [4]; this case uses the asymmetric pattern. The 5.7° skew [2] and the new right-sided hearing loss give it away. HINTS plus: adding any new hearing loss to HINTS raised sensitivity for a central cause to 99.2% [3].'}
 ];
 const caseById=id=>CASES.find(c=>c.id===id);
+
+/* ================= further reading =================
+   Everything here is free to open. Overviews: StatPearls on NCBI Bookshelf (year = last update) and Radiopaedia.
+   Videos: NOVEL, Neuro-Ophthalmology Virtual Education Library, University of Utah.
+   Criteria: Bárány Society, open access on PubMed Central. Papers: open access on PubMed Central or the publisher. */
+const RK={video:'Video',overview:'Overview',criteria:'Criteria',paper:'Paper'};
+const RD={
+ hints:{k:'video',t:'HINTS Plus exam, demonstrated',s:'Gold DR, Hale D. NOVEL, 2024',u:'https://collections.lib.utah.edu/details?id=2560413'},
+ tarnutzer:{k:'paper',t:'Bedside test accuracy in the acute vestibular syndrome by examiner training and stroke location: a meta-analysis',s:'Tarnutzer, Mantokoudis, Kattah, Newman-Toker et al. Ann Neurol 2023',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC10524166/'},
+ nystTypes:{k:'overview',t:'Nystagmus Types',s:'StatPearls, 2025',u:'https://www.ncbi.nlm.nih.gov/books/NBK539711/'},
+ central:{k:'overview',t:'Central Vertigo',s:'StatPearls, 2024',u:'https://www.ncbi.nlm.nih.gov/books/NBK441861/'},
+ halmagyi:{k:'paper',t:'The video head impulse test',s:'Halmagyi et al. Front Neurol 2017',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC5465266/'},
+ korda21:{k:'paper',t:'Quantifying a learning curve for video head impulse test: pitfalls and pearls',s:'Korda et al. Front Neurol 2021 [6]',u:'https://www.frontiersin.org/journals/neurology/articles/10.3389/fneur.2020.615651/full'},
+ korda20:{k:'paper',t:'How good are we in evaluating a bedside head impulse test?',s:'Korda et al. Ear Hear 2020 [5]',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC7722467/'},
+ kattah:{k:'paper',t:'HINTS to diagnose stroke in the acute vestibular syndrome',s:'Kattah et al. Stroke 2009 [2]',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC4593511/'},
+ bppv:{k:'overview',t:'Benign Paroxysmal Positional Vertigo',s:'StatPearls, 2025',u:'https://www.ncbi.nlm.nih.gov/books/NBK470308/'},
+ dix:{k:'overview',t:'Dix-Hallpike Maneuver',s:'StatPearls, 2023',u:'https://www.ncbi.nlm.nih.gov/books/NBK459307/'},
+ epley:{k:'overview',t:'Epley Maneuver',s:'StatPearls, 2024',u:'https://www.ncbi.nlm.nih.gov/books/NBK563287/'},
+ vnVid:{k:'video',t:'Acute vestibular neuritis: unidirectional nystagmus and an abnormal video HIT',s:'Gold DR. NOVEL, 2020',u:'https://collections.lib.utah.edu/details?id=1550673'},
+ vn:{k:'overview',t:'Vestibular Neuronitis',s:'StatPearls, 2023',u:'https://www.ncbi.nlm.nih.gov/books/NBK549866/'},
+ vnCrit:{k:'criteria',t:'Acute unilateral vestibulopathy / vestibular neuritis: diagnostic criteria',s:'Bárány Society. Strupp et al. J Vestib Res 2022',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC9661346/'},
+ bvpVid:{k:'video',t:'Oscillopsia and bilateral vestibular loss with gentamicin ototoxicity',s:'Gold DR. NOVEL',u:'https://collections.lib.utah.edu/details?id=1213435'},
+ bvpCrit:{k:'criteria',t:'Bilateral vestibulopathy: diagnostic criteria',s:'Bárány Society. Strupp et al. J Vestib Res 2017',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC9249284/'},
+ bvpRev:{k:'paper',t:'Bilateral vestibulopathy: a clinical update and proposed diagnostic algorithm',s:'van Stiphout et al. Front Neurol 2023',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC10766383/'},
+ compVid:{k:'video',t:'Video HIT unmasks covert saccades in compensated vestibular neuritis',s:'Gold DR. NOVEL, 2017',u:'https://collections.lib.utah.edu/details?id=1277723'},
+ rehab:{k:'overview',t:'Vestibular Rehabilitation',s:'StatPearls, 2026',u:'https://www.ncbi.nlm.nih.gov/books/NBK572153/'},
+ cpg:{k:'paper',t:'Vestibular rehabilitation for peripheral vestibular hypofunction: clinical practice guideline',s:'Hall et al. J Neurol Phys Ther 2022',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC8920012/'},
+ lmsVid:{k:'video',t:'Right lateral medullary (Wallenberg) syndrome with lateropulsion and ocular tilt reaction',s:'Micieli JA, Biousse V. NOVEL, 2018',u:'https://collections.lib.utah.edu/ark:/87278/s61v9c63'},
+ cereb:{k:'overview',t:'Cerebellar Infarction',s:'StatPearls, 2026',u:'https://www.ncbi.nlm.nih.gov/books/NBK470416/'},
+ lms:{k:'overview',t:'Lateral Medullary Syndrome (Wallenberg Syndrome)',s:'StatPearls, 2026',u:'https://www.ncbi.nlm.nih.gov/books/NBK551670/'},
+ vascCrit:{k:'criteria',t:'Vascular vertigo and dizziness: diagnostic criteria',s:'Bárány Society. Kim, Newman-Toker, Kerber et al. J Vestib Res 2022',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC9249306/'},
+ skew:{k:'paper',t:'Acute vestibular syndrome: is skew deviation a central sign?',s:'Korda et al. J Neurol 2022 [7]',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC8857098/'},
+ aica:{k:'overview',t:'Anterior inferior cerebellar artery (AICA) infarct',s:'Radiopaedia, 2024',u:'https://radiopaedia.org/articles/anterior-inferior-cerebellar-artery-aica-infarct'},
+ hintsPlus:{k:'paper',t:'HINTS+ to diagnose AICA stroke: systematic review of acute unilateral hearing loss',s:'Anburajan, Kattah, Mantokoudis, Newman-Toker, Tarnutzer et al. J Neurol 2026',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC13668945/'},
+ bery:{k:'paper',t:'A positive horizontal-canal head impulse test is not a benign sign in acute vestibular syndrome with hearing loss',s:'Bery, Chang. Front Neurol 2022',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC9549073/'},
+ aicaBil:{k:'paper',t:'Bilaterally positive head impulse tests can differentiate AICA infarction from labyrinthitis',s:'Kim et al. Front Neurol 2024',u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC11390645/'}
+};
+const READ_EXAM=['hints','tarnutzer','nystTypes','central','halmagyi','korda21'];
+const READ={
+ normal:['bppv','dix','epley'],
+ vnR:['vnVid','vn','vnCrit','korda20'],
+ vnL:['vnVid','vn','vnCrit','korda20'],
+ bvl:['bvpVid','bvpCrit','bvpRev','cpg'],
+ compL:['compVid','rehab','cpg','halmagyi'],
+ pica:['lmsVid','cereb','lms','vascCrit','kattah','skew'],
+ aica:['aica','vascCrit','hintsPlus','bery','aicaBil']
+};
+const READ_GROUPS=[['Normal reflex (BPPV history)','normal'],['Vestibular neuritis','vnR'],['Bilateral vestibular loss','bvl'],['Compensated unilateral loss','compL'],['PICA stroke','pica'],['AICA stroke','aica']];
+const readList=keys=>`<ul class="reads">${keys.map(k=>{const r=RD[k];return `<li><span class="tag r-${r.k}">${RK[r.k]}</span><a href="${r.u}" target="_blank" rel="noopener">${r.t}</a><span class="small">${r.s}</span></li>`;}).join('')}</ul>`;
+function renderReading(){
+  $('#readGeneral').innerHTML=readList(READ_EXAM);
+  $('#readByCase').innerHTML=READ_GROUPS.map(([n,id])=>`<h3>${n}</h3>${readList(READ[id])}`).join('');
+}
 
 const QUIZ=[
  {id:'rhit',label:"Thrusts to the patient's right",opts:[['normal','Eyes stayed on me'],['saccade','Catch-up saccade'],['focus','Too focused on my technique to notice']]},
@@ -533,10 +617,15 @@ class Rig{
     if(this.lastT==null){this.lastT=t;this.lastW=w;return;}
     const span=t-this.lastT;if(span<=0)return;
     if(span>120){this.lastT=t;this.lastW=w;return;}
-    const t0=this.lastT,w0=this.lastW,n=Math.max(1,Math.ceil(span/4)),E0=P.E;P.accVor=0;
-    for(let i=1;i<=n;i++){const f=i/n;P.step(t0+span*f,span/n/1000,w0+(w-w0)*f);}
-    const dt=span/1000;
-    this.D.push(t,w,(P.E-E0)/dt,P.accVor/dt);
+    // Resample to ~4 ms steps and feed the detector every step, so gain and onset acceleration are measured
+    // the same way whatever rate the phone delivers (browsers give about 60 Hz). Without this, eye velocity
+    // (averaged over the gap) was paired with head velocity at the end of the gap, which read gains ~0.1 low at 60 Hz.
+    const t0=this.lastT,w0=this.lastW,n=Math.max(1,Math.ceil(span/4)),h=span/n/1000;
+    for(let i=1;i<=n;i++){
+      const f=i/n,ti=t0+span*f,wi=w0+(w-w0)*f,E0=P.E;P.accVor=0;
+      P.step(ti,h,wi);
+      this.D.push(ti,wi,(P.E-E0)/h,P.accVor/h);
+    }
     this.lastT=t;this.lastW=w;
   }
   queue(sign,peak,amp,now){
@@ -840,7 +929,7 @@ function startCalibration(){
   const C=S.calib;C.phase='count';let n=5;
   const step=()=>{
     if(!S||S.calib!==C||C.phase!=='count')return;
-    if(n===0){C.phase='still';C.t0=performance.now();C.sum=[0,0,0];C.n=0;overlay('<p class="big">Hold the head still</p>');return;}
+    if(n===0){calPhase('still',performance.now());return;}
     overlay(`<p class="eyebrow">Mount the phone now</p><p class="big mono">${n}</p>`);n--;setTimeout(step,1000);
   };
   step();
@@ -853,27 +942,83 @@ function startCalibration(){
 function switchToDemo(){
   const o={caseId:S.picked,mode:'demo',coach:S.coach,mag:2};endSession(false);beginSession(o,'');
 }
+/* Calibration: hold still (gyro bias) → turn to the patient's right → back to centre → turn to the patient's left → back to centre.
+   The head angle is integrated along the yaw axis with the real time between samples (gaps up to 0.2 s).
+   A turn counts once it reaches 20° and the head stops or starts to come back.
+   The centre counts only when the head is inside the centre band AND has been still for 350 ms, so a slow return is never cut short.
+   If integration drift keeps the angle outside the band, holding still for 3 s within half the turn is accepted as the centre.
+   Both turns must be about the same axis (cosine below -0.8); the final yaw axis averages the two. All thresholds are design choices. */
+const CAL={minTurn:20,still:8,holdMs:350,turnHoldMs:150,band:4,bandFrac:0.15,trustMs:3000,maxDt:0.2,axisCos:-0.8,hintMs:1500};
+const CAL_PHASES=['still','right','center1','left','center2'];
+const CAL_UI={
+  still:[1,'Hold the head still, facing you','Measuring the gyroscope at rest.',''],
+  right:[2,"Turn the head slowly to the patient's RIGHT",'That is your left. About 30°, then stop.','zr'],
+  center1:[3,'Now back to the centre','Stop when the patient faces you.','zc'],
+  left:[4,"Now slowly to the patient's LEFT",'That is your right. About 30°, then stop.','zl'],
+  center2:[5,'Back to the centre','Stop when the patient faces you.','zc']
+};
+function calPhase(ph,t,note){
+  const C=S.calib;
+  Object.assign(C,{phase:ph,lastT:t,stillSince:null,hinted:'',V:[0,0,0],peak:0,tPhase:t});
+  if(ph==='still'){C.t0=t;C.sum=[0,0,0];C.n=0;C.A=0;C.note=note||'';}
+  if(ph==='right'||ph==='left')C.A=0;
+  const [n,big,sub,zone]=CAL_UI[ph];
+  overlay(`<p class="eyebrow">Calibration · step ${n} of 5</p>${note?`<p class="cal-hint">${note}</p>`:''}<p class="big">${big}</p><p>${sub}</p>
+    <div class="cal-gauge" aria-hidden="true"><span class="zone zr${zone==='zr'?' on':''}"></span><span class="zone zc${zone==='zc'?' on':''}"></span><span class="zone zl${zone==='zl'?' on':''}"></span><i id="calDot"></i></div>
+    <div class="cal-ends" aria-hidden="true"><span>Patient's right</span><span>Centre</span><span>Patient's left</span></div>
+    <p class="cal-hint" id="calHint" aria-live="polite"></p>
+    ${ph==='still'?'':'<button class="btn" id="calAgain">Start again</button>'}`);
+  const b=$('#calAgain');if(b)b.onclick=()=>calPhase('still',performance.now());
+}
+function calHint(msg){const C=S.calib;if(C.hinted===msg)return;C.hinted=msg;const h=$('#calHint');if(h)h.textContent=msg;}
+function calDot(a){const d=$('#calDot');if(d)d.style.left=(50-clamp(a,-40,40)/40*50)+'%';} // the screen faces the examiner, so the patient's right is on screen-left
 function calibStep(t,v){
   const C=S.calib;
+  const dt=clamp((t-C.lastT)/1000,0,CAL.maxDt);C.lastT=t;
   if(C.phase==='still'){
     if(Math.hypot(v[0],v[1],v[2])>10){C.t0=t;C.sum=[0,0,0];C.n=0;return;}
     C.sum=C.sum.map((s,i)=>s+v[i]);C.n++;
-    if(t-C.t0>1500&&C.n>20){
-      S.bias=C.sum.map(s=>s/C.n);C.phase='turn';C.S=[0,0,0];C.lastT=t;
-      overlay(`<p class="big">Turn the head slowly to the patient's RIGHT</p><p>That is your left. About 30°, then back to face you.</p>`);
-    }
-  }else if(C.phase==='turn'){
-    const dt=clamp((t-C.lastT)/1000,0,0.05);C.lastT=t;
-    const vb=v.map((x,i)=>x-S.bias[i]);
-    if(Math.hypot(...vb)>4)C.S=C.S.map((s,i)=>s+vb[i]*dt);
-    const m=Math.hypot(...C.S);
-    if(m>=20){S.u=C.S.map(s=>s/m);C.phase='back';C.A=m;C.tBack=t;overlay('<p class="big">Good. Bring the head back to face you</p>');}
-  }else if(C.phase==='back'){
-    const dt=clamp((t-C.lastT)/1000,0,0.05);C.lastT=t;
-    const w=(v[0]-S.bias[0])*S.u[0]+(v[1]-S.bias[1])*S.u[1]+(v[2]-S.bias[2])*S.u[2];
-    C.A+=w*dt;
-    if((C.A<5&&Math.abs(w)<15)||t-C.tBack>5000)finishCalibration(true);
+    if(t-C.t0>1500&&C.n>20){S.bias=C.sum.map(s=>s/C.n);const note=C.note;C.note='';calPhase('right',t,note);}
+    return;
   }
+  const vb=v.map((x,i)=>x-S.bias[i]);
+  if(Math.hypot(...vb)<CAL.still){if(C.stillSince==null)C.stillSince=t;}else C.stillSince=null;
+  const stillFor=C.stillSince==null?0:t-C.stillSince;
+  if(C.phase==='right'||C.phase==='left'){
+    C.V=C.V.map((s,i)=>s+vb[i]*dt);
+    const right=C.phase==='right';
+    C.A=right?Math.hypot(...C.V):C.V[0]*S.u[0]+C.V[1]*S.u[1]+C.V[2]*S.u[2]; // + = patient's right of centre
+    const mag=Math.hypot(...C.V); // size of the turn whatever its axis; the axis is checked when the left turn ends
+    C.peak=Math.max(C.peak,mag);
+    if(C.peak>=CAL.minTurn&&(stillFor>=CAL.turnHoldMs||mag<C.peak-3)){
+      if(right){
+        const m=Math.hypot(...C.V);S.u=C.V.map(s=>s/m);C.VR=C.V.slice();C.peakR=C.peak;C.A=m;
+        calPhase('center1',t);C.A=m;
+      }else{
+        const mR=Math.hypot(...C.VR),mL=Math.hypot(...C.V);
+        const cos=(C.VR[0]*C.V[0]+C.VR[1]*C.V[1]+C.VR[2]*C.V[2])/(mR*mL);
+        if(cos>CAL.axisCos){calPhase('still',t,cos>0.3?"That turn went to the patient's right again. Start again and turn to the LEFT second.":"The two turns weren't around the same axis. Keep the head level and turn it as if shaking it 'no'.");return;}
+        const uu=[0,1,2].map(i=>C.VR[i]/mR-C.V[i]/mL),mu=Math.hypot(...uu);S.u=uu.map(x=>x/mu);
+        const A=C.V[0]*S.u[0]+C.V[1]*S.u[1]+C.V[2]*S.u[2];
+        S.calInfo={cos:+cos.toFixed(3),peakR:+C.peakR.toFixed(1),peakL:+C.peak.toFixed(1)};
+        C.peakL=C.peak;calPhase('center2',t);C.A=A;
+      }
+    }else if(stillFor>CAL.hintMs&&C.peak>3&&C.peak<CAL.minTurn)calHint('A little further: at least 20°.');
+    else if(!stillFor)calHint('');
+  }else{
+    C.A+=(vb[0]*S.u[0]+vb[1]*S.u[1]+vb[2]*S.u[2])*dt;
+    const peak=C.phase==='center1'?C.peakR:C.peakL,side=C.phase==='center1'?1:-1;
+    const band=Math.max(CAL.band,CAL.bandFrac*peak);
+    const inBand=Math.abs(C.A)<=band,trust=stillFor>=CAL.trustMs&&Math.abs(C.A)<=0.5*peak;
+    if((stillFor>=CAL.holdMs&&inBand)||trust){
+      if(C.phase==='center1')calPhase('left',t);
+      else{S.calInfo.offEnd=+C.A.toFixed(1);finishCalibration(true);}
+      return;
+    }
+    if(stillFor>CAL.hintMs)calHint(C.A*side>0?'Keep coming back to the centre.':'Past the centre: come back a little.');
+    else if(!stillFor)calHint('');
+  }
+  calDot(C.A);
 }
 function finishCalibration(done){
   S.calib.phase='done';S.calibrated=done;
@@ -885,7 +1030,7 @@ function onMotion(e){
   const r=e.rotationRate;if(!r||(r.alpha==null&&r.beta==null&&r.gamma==null))return;
   const t=performance.now();S.lastMotion=t;
   const v=[r.beta||0,r.gamma||0,r.alpha||0];
-  if(S.calib.phase==='still'||S.calib.phase==='turn'||S.calib.phase==='back'){calibStep(t,v);return;}
+  if(CAL_PHASES.includes(S.calib.phase)){calibStep(t,v);return;}
   if(!S.running)return;
   const w=(v[0]-S.bias[0])*S.u[0]+(v[1]-S.bias[1])*S.u[1]+(v[2]-S.bias[2])*S.u[2];
   S.rig.ingest(t,w);
@@ -1165,6 +1310,7 @@ function renderReveal(ans){
   <p class="mono small">Exam grade ${G.total}/100 · ${G.band}${ans?` · findings ${nRight} of ${QUIZ.length} correct`:''}${nFocus?` · ${nFocus} missed while focusing on technique`:''}</p></header>
   ${ans?`<section aria-labelledby="fH"><h2 id="fH">Findings</h2><div class="tbl-wrap"><table><thead><tr><th>Finding</th><th>You</th><th>Answer</th><th></th></tr></thead><tbody>${rowsQ}</tbody></table></div></section>`:''}
   <section class="callout"><p>${c.teach}</p><p class="small">Numbers in brackets refer to Sources and assumptions on the start page.</p></section>
+  ${READ[c.id]?`<section aria-labelledby="rH"><h2 id="rH">Read more</h2>${readList(READ[c.id])}<p class="small">All free to open. Overviews are from StatPearls (NCBI Bookshelf) unless marked; videos are from NOVEL at the University of Utah.</p></section>`:''}
   ${notes.length?`<section aria-labelledby="lH"><h2 id="lH">How your hands shaped what you saw</h2>${notes.map(n=>`<p>${n}</p>`).join('')}</section>`:''}
   ${s.n?`<section aria-labelledby="cH"><h2 id="cH">Traces</h2>
     <div class="charts">
@@ -1183,7 +1329,7 @@ function renderReveal(ans){
 }
 
 /* ================= boot ================= */
-buildCaseSelect();probeSensor();renderProgress();
+buildCaseSelect();probeSensor();renderProgress();renderReading();
 $('#startBtn').addEventListener('click',startFromHome);
 if(reduceMotion){
   const rig=new Rig(caseById('vnR'));drawFace(hero.cv,rig.P,{mag:2,demo:true,now:performance.now()});
